@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DETECTIVE SST - Juego de Investigación en Seguridad e Higiene</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sst: {
+                            dark: '#0a0f1d',
+                            panel: '#131b2e',
+                            card: '#1a243b',
+                            border: '#2a3859',
+                            yellow: '#f59e0b',
+                            yellowHover: '#d97706',
+                            blue: '#0284c7',
+                            cyan: '#38bdf8',
+                            green: '#10b981',
+                            red: '#ef4444'
+                        }
+                    },
+                    fontFamily: {
+                        heading: ['Oswald', 'sans-serif'],
+                        sans: ['Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0a0f1d;
+            color: #e2e8f0;
+            font-family: 'Roboto', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .hotspot-pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 14px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0f1d; }
+        ::-webkit-scrollbar-thumb { background: #2a3859; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+        .radar-sweep {
+            background: conic-gradient(from 0deg at 50% 50%, rgba(245, 158, 11, 0.2) 0deg, transparent 60deg, transparent 360deg);
+            animation: rotateRadar 4s linear infinite;
+        }
+
+        @keyframes rotateRadar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .dust-particle {
+            animation: floatParticle 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatParticle {
+            0% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+            50% { transform: translateY(-15px) translateX(10px); opacity: 0.7; }
+            100% { transform: translateY(-30px) translateX(-5px); opacity: 0.2; }
+        }
+
+        .hotspot-reticle {
+            animation: reticleSpin 8s linear infinite;
+        }
+
+        @keyframes reticleSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ============ Tablero de causalidad (corcho + hilos) ============ */
+        .corkboard {
+            background-color: #6b4a30;
+            background-image:
+                radial-gradient(circle at 12% 22%, rgba(0,0,0,0.18) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 62% 68%, rgba(0,0,0,0.15) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 32% 82%, rgba(0,0,0,0.13) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 82% 32%, rgba(0,0,0,0.15) 1.5px, transparent 1.5px),
+                radial-gradient(circle at 45% 45%, rgba(0,0,0,0.1) 1.5px, transparent 1.5px);
+            background-size: 24px 24px, 32px 32px, 28px 28px, 36px 36px, 20px 20px;
+            border: 8px solid #3f2c1c;
+            box-shadow: inset 0 0 70px rgba(0,0,0,0.55), 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .board-slot {
+            border: 2px dashed var(--accent, #475569);
+            background: rgba(9, 13, 22, 0.55);
+            border-radius: 12px;
+            min-height: 78px;
+            transition: background .2s ease, box-shadow .2s ease, border-style .2s ease;
+            position: relative;
+        }
+        .board-slot-hover {
+            background: rgba(245, 158, 11, 0.18);
+            border-style: solid;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.3) inset;
+        }
+        .board-slot-filled {
+            border-style: solid;
+            background: rgba(9, 13, 22, 0.9);
+            box-shadow: 0 0 18px -4px var(--accent, transparent);
+        }
+        .board-connector {
+            width: 3px;
+            height: 16px;
+            margin: 0 auto;
+            background-image: linear-gradient(to bottom, #57534e 0 5px, transparent 5px 9px);
+            background-size: 3px 9px;
+        }
+        .board-connector.connected {
+            background-image: none;
+            background-color: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b;
+        }
+
+        .clue-card {
+            background: #fdf6e3;
+            color: #1f2937;
+            border-radius: 6px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.45);
+            cursor: grab;
+            touch-action: none;
+            position: relative;
+            transform: rotate(var(--tilt, -2deg));
+            transition: transform .15s ease;
+        }
+        .clue-card:active { cursor: grabbing; }
+        .clue-card::before {
+            content: '📌';
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,.5));
+        }
+        .clue-card-dragging { transition: none; }
+
+        @keyframes shakeWrong {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-8px); }
+            40% { transform: translateX(8px); }
+            60% { transform: translateX(-6px); }
+            80% { transform: translateX(6px); }
+        }
+        .board-slot-wrong { animation: shakeWrong 0.4s ease; }
+
+        @keyframes popCorrect {
+            0% { transform: scale(0.85); }
+            60% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+        .board-slot-correct-flash { animation: popCorrect 0.35s ease; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden bg-sst-dark text-slate-100">
+
+    <header class="h-14 border-b border-sst-border bg-sst-panel/90 px-4 flex items-center justify-between z-30">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="goToScreen('main')">
+            <div class="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500 flex items-center justify-center text-amber-400 font-bold">
+                🦺
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="font-heading text-xl font-bold tracking-wider text-white">DETECTIVE <span class="text-amber-400">SST</span></span>
+                <span class="text-[10px] text-slate-400 font-mono hidden sm:inline-block uppercase tracking-widest border-l border-slate-700 pl-2">Investiga · Analiza · Previene</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button id="btn-sound" onclick="toggleAudio()" class="px-3 py-1.5 rounded bg-sst-card hover:bg-sst-border text-xs border border-sst-border flex items-center gap-1.5 transition">
+                <span id="sound-icon">🔊</span>
+                <span class="hidden md:inline font-mono text-[11px]">SONIDO</span>
+            </button>
+            <button onclick="goToScreen('levels')" class="px-3 py-1.5 rounded bg-sst-card hover:bg-sst-border text-xs border border-sst-border flex items-center gap-1.5 transition">
+                <span>🗂️</span>
+                <span class="hidden md:inline font-mono text-[11px]">NIVELES</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden flex flex-col">
+
+        <!-- ==================== SCREEN 1: PANTALLA PRINCIPAL ==================== -->
+        <section id="screen-main" class="w-full h-full flex flex-col justify-center items-center relative p-6 bg-cover bg-center" style="background-image: linear-gradient(to right, rgba(10,15,29,0.92), rgba(10,15,29,0.75)), url('https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1200&auto=format&fit=crop');">
+            <div class="max-w-2xl text-center space-y-6">
+                <!-- Big Logo Display -->
+                <div class="inline-flex items-center justify-center gap-4 bg-sst-panel/80 p-6 rounded-2xl border border-amber-500/40 backdrop-blur shadow-2xl">
+                    <div class="w-20 h-20 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 text-4xl shadow-inner">
+                        🔍
+                    </div>
+                    <div class="text-left">
+                        <h1 class="font-heading text-4xl md:text-5xl font-bold tracking-wider text-white">DETECTIVE <span class="text-amber-400">SST</span></h1>
+                        <p class="text-xs md:text-sm text-slate-300 font-mono tracking-widest mt-1">INVESTIGA · ANALIZA · PREVIENE</p>
+                    </div>
+                </div>
+
+                <p class="text-slate-300 text-base md:text-lg max-w-lg mx-auto font-light leading-relaxed">
+                    Un accidente no es un simple evento, detrás de él hay causas. <br><span class="text-amber-400 font-semibold">Tu misión es descubrirlas.</span>
+                </p>
+
+                <!-- Actions menu -->
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                    <button onclick="startLevel(1)" class="w-full sm:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-heading font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20 transition transform hover:scale-105 flex items-center justify-center gap-2">
+                        <span>►</span>
+                        <span>Comenzar Investigación</span>
+                    </button>
+                    <button onclick="goToScreen('levels')" class="w-full sm:w-auto px-6 py-3.5 bg-sst-card hover:bg-sst-border text-white font-heading font-semibold rounded-xl border border-sst-border transition flex items-center justify-center gap-2">
+                        <span>⚙️</span>
+                        <span>Niveles de dificultad</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 2: SELECCIONA UN NIVEL ==================== -->
+        <section id="screen-levels" class="w-full h-full hidden p-6 flex flex-col justify-between overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-6">
+                <div class="flex items-center gap-3">
+                    <button onclick="goToScreen('main')" class="p-2 rounded bg-sst-card hover:bg-sst-border border border-sst-border text-slate-300">←</button>
+                    <div>
+                        <h2 class="font-heading text-2xl font-bold text-amber-400 tracking-wider">SELECCIONA UN NIVEL</h2>
+                        <p class="text-xs text-slate-400">Elige un caso de investigación de accidentes laborales de la lista:</p>
+                    </div>
+                </div>
+
+                <!-- Levels Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Nivel 1 -->
+                    <div class="bg-sst-panel border-2 border-amber-500 rounded-xl overflow-hidden shadow-lg flex flex-col justify-between p-4 space-y-3">
+                        <div class="h-28 bg-slate-800 rounded-lg overflow-hidden relative">
+                            <img src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-80" alt="Planta">
+                            <span class="absolute top-2 left-2 bg-amber-500 text-slate-950 font-bold text-[10px] px-2 py-0.5 rounded">NIVEL 1</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading text-base font-bold text-white">Planta de Producción</h3>
+                            <p class="text-xs text-amber-400 font-medium">Accidente leve: Caída en altura</p>
+                            <div class="text-amber-400 text-xs mt-1">★ ★ ★ ☆ ☆</div>
+                        </div>
+                        <button onclick="startLevel(1)" class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded transition">
+                            Jugar
+                        </button>
+                    </div>
+
+                    <!-- Nivel 2 -->
+                    <div class="bg-sst-panel border border-sst-border opacity-75 rounded-xl overflow-hidden shadow p-4 flex flex-col justify-between space-y-3">
+                        <div class="h-28 bg-slate-800 rounded-lg overflow-hidden relative">
+                            <img src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-50 filter grayscale" alt="Nivel 2">
+                            <span class="absolute top-2 left-2 bg-slate-700 text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded">NIVEL 2</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading text-base font-bold text-slate-300">Almacén Logístico</h3>
+                            <p class="text-xs text-slate-400">Múltiples causas: Atrapamiento</p>
+                            <div class="text-slate-600 text-xs mt-1">★ ☆ ☆ ☆ ☆</div>
+                        </div>
+                        <button disabled class="w-full py-2 bg-sst-card text-slate-500 font-bold text-xs rounded cursor-not-allowed">
+                            Bloqueado
+                        </button>
+                    </div>
+
+                    <!-- Nivel 3 -->
+                    <div class="bg-sst-panel border border-sst-border opacity-75 rounded-xl overflow-hidden shadow p-4 flex flex-col justify-between space-y-3">
+                        <div class="h-28 bg-slate-800 rounded-lg overflow-hidden relative">
+                            <img src="https://images.unsplash.com/photo-1565008447742-97f6f38c985c?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-50 filter grayscale" alt="Nivel 3">
+                            <span class="absolute top-2 left-2 bg-slate-700 text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded">NIVEL 3</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading text-base font-bold text-slate-300">Área Electromecánica</h3>
+                            <p class="text-xs text-slate-400">Accidente grave: Contacto eléctrico</p>
+                            <div class="text-slate-600 text-xs mt-1">★ ☆ ☆ ☆ ☆</div>
+                        </div>
+                        <button disabled class="w-full py-2 bg-sst-card text-slate-500 font-bold text-xs rounded cursor-not-allowed">
+                            Bloqueado
+                        </button>
+                    </div>
+
+                    <!-- Nivel 4 -->
+                    <div class="bg-sst-panel border border-sst-border opacity-75 rounded-xl overflow-hidden shadow p-4 flex flex-col justify-between space-y-3">
+                        <div class="h-28 bg-slate-800 rounded-lg overflow-hidden relative">
+                            <img src="https://images.unsplash.com/photo-1541888946425-d0fbb186a5b3?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-50 filter grayscale" alt="Nivel 4">
+                            <span class="absolute top-2 left-2 bg-slate-700 text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded">NIVEL 4</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading text-base font-bold text-slate-300">Construcción Civil</h3>
+                            <p class="text-xs text-slate-400">Investigación compleja: Derrumbe</p>
+                            <div class="text-slate-600 text-xs mt-1">★ ☆ ☆ ☆ ☆</div>
+                        </div>
+                        <button disabled class="w-full py-2 bg-sst-card text-slate-500 font-bold text-xs rounded cursor-not-allowed">
+                            Bloqueado
+                        </button>
+                    </div>
+
+                    <!-- Nivel 5 -->
+                    <div class="bg-sst-panel border border-sst-border opacity-75 rounded-xl overflow-hidden shadow p-4 flex flex-col justify-between space-y-3">
+                        <div class="h-28 bg-slate-800 rounded-lg overflow-hidden relative">
+                            <img src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=400&auto=format&fit=crop" class="w-full h-full object-cover opacity-50 filter grayscale" alt="Nivel 5">
+                            <span class="absolute top-2 left-2 bg-slate-700 text-slate-300 font-bold text-[10px] px-2 py-0.5 rounded">NIVEL 5</span>
+                        </div>
+                        <div>
+                            <h3 class="font-heading text-base font-bold text-slate-300">Planta Química</h3>
+                            <p class="text-xs text-slate-400">Varias hipótesis: Fuga tóxica</p>
+                            <div class="text-slate-600 text-xs mt-1">★ ☆ ☆ ☆ ☆</div>
+                        </div>
+                        <button disabled class="w-full py-2 bg-sst-card text-slate-500 font-bold text-xs rounded cursor-not-allowed">
+                            Bloqueado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 3: EXPLORACIÓN DE LA ESCENA ==================== -->
+        <section id="screen-scene" class="w-full h-full hidden flex flex-col relative overflow-hidden">
+            <!-- Case Header Banner -->
+            <div class="bg-sst-panel border-b border-sst-border px-4 py-2 flex flex-wrap items-center justify-between text-xs gap-2">
+                <div class="flex items-center gap-3">
+                    <span class="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded font-mono">CASO 1</span>
+                    <h2 class="font-bold text-slate-200">Caída de trabajador en altura</h2>
+                    <span class="text-slate-400 font-mono">| Planta de producción | 10:30 a.m.</span>
+                </div>
+
+                <!-- Navigation Tabs inside case -->
+                <div class="flex items-center gap-2">
+                    <button onclick="switchCaseTab('scene')" id="tab-btn-scene" class="px-3 py-1 bg-amber-500 text-slate-950 font-bold rounded text-xs transition">🔍 Escena</button>
+                    <button onclick="switchCaseTab('interviews')" id="tab-btn-interviews" class="px-3 py-1 bg-sst-card text-slate-300 hover:text-white rounded text-xs border border-sst-border transition">🗣️ Entrevistas</button>
+                    <button onclick="switchCaseTab('analysis')" id="tab-btn-analysis" class="px-3 py-1 bg-sst-card text-slate-300 hover:text-white rounded text-xs border border-sst-border transition">📊 5 Porqués</button>
+                    <button onclick="switchCaseTab('conclusion')" id="tab-btn-conclusion" class="px-3 py-1 bg-sst-card text-slate-300 hover:text-white rounded text-xs border border-sst-border transition">📋 Conclusión</button>
+                </div>
+            </div>
+
+            <!-- Scene Canvas Area -->
+            <div class="flex-1 relative bg-slate-950 overflow-hidden flex items-center justify-center p-2 sm:p-4">
+
+                <!-- Background Scene SVG Graphic Representation -->
+                <div class="relative w-full max-w-5xl h-[520px] bg-slate-950 rounded-2xl border-2 border-sst-border shadow-2xl overflow-hidden">
+
+                    <svg class="w-full h-full absolute inset-0" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <!-- Gradients -->
+                            <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#0f172a"/>
+                                <stop offset="60%" stop-color="#1e293b"/>
+                                <stop offset="100%" stop-color="#090d16"/>
+                            </linearGradient>
+                            <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#334155"/>
+                                <stop offset="30%" stop-color="#1e293b"/>
+                                <stop offset="100%" stop-color="#0f172a"/>
+                            </linearGradient>
+                            <linearGradient id="metalBeam" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#475569"/>
+                                <stop offset="50%" stop-color="#94a3b8"/>
+                                <stop offset="100%" stop-color="#334155"/>
+                            </linearGradient>
+                            <linearGradient id="pipeGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#64748b"/>
+                                <stop offset="50%" stop-color="#f8fafc"/>
+                                <stop offset="100%" stop-color="#334155"/>
+                            </linearGradient>
+                            <radialGradient id="lampCone" cx="50%" cy="0%" r="90%">
+                                <stop offset="0%" stop-color="rgba(251, 191, 36, 0.45)"/>
+                                <stop offset="40%" stop-color="rgba(245, 158, 11, 0.15)"/>
+                                <stop offset="100%" stop-color="rgba(0, 0, 0, 0)"/>
+                            </radialGradient>
+                            <radialGradient id="redLampCone" cx="50%" cy="0%" r="80%">
+                                <stop offset="0%" stop-color="rgba(239, 68, 68, 0.35)"/>
+                                <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+                            </radialGradient>
+                            <!-- Hazard pattern -->
+                            <pattern id="hazardStripes" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                                <rect width="20" height="40" fill="#f59e0b"/>
+                                <rect x="20" width="20" height="40" fill="#0f172a"/>
+                            </pattern>
+                        </defs>
+
+                        <!-- Wall and Corrugated Panels -->
+                        <rect x="0" y="0" width="1000" height="460" fill="url(#wallGrad)"/>
+
+                        <!-- Corrugated Wall Pattern lines -->
+                        <path d="M 0,0 L 0,460 M 50,0 L 50,460 M 100,0 L 100,460 M 150,0 L 150,460 M 200,0 L 200,460 M 250,0 L 250,460 M 300,0 L 300,460 M 350,0 L 350,460 M 400,0 L 400,460 M 450,0 L 450,460 M 500,0 L 500,460 M 550,0 L 550,460 M 600,0 L 600,460 M 650,0 L 650,460 M 700,0 L 700,460 M 750,0 L 750,460 M 800,0 L 800,460 M 850,0 L 850,460 M 900,0 L 900,460 M 950,0 L 950,460" stroke="#1e293b" stroke-width="2" opacity="0.6"/>
+
+                        <!-- Industrial Brick Accent Sections -->
+                        <rect x="30" y="180" width="180" height="180" fill="#181e29" stroke="#2a3859" stroke-width="2" rx="4"/>
+                        <!-- Electrical Box on Wall -->
+                        <rect x="60" y="210" width="80" height="110" fill="#334155" stroke="#64748b" stroke-width="3" rx="4"/>
+                        <rect x="70" y="225" width="60" height="40" fill="#0f172a" rx="2"/>
+                        <circle cx="100" cy="285" r="8" fill="#ef4444"/>
+                        <path d="M 100,245 L 92,258 L 98,258 L 95,268 L 108,252 L 101,252 Z" fill="#f59e0b"/> <!-- Lightning Bolt -->
+                        <text x="100" y="310" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="monospace">LOTO - 380V</text>
+
+                        <!-- Overhead Piping System -->
+                        <rect x="0" y="65" width="1000" height="16" fill="url(#pipeGrad)"/>
+                        <rect x="0" y="90" width="1000" height="10" fill="url(#pipeGrad)"/>
+                        <!-- Pipe Flanges & Valves -->
+                        <rect x="180" y="58" width="12" height="30" fill="#475569" rx="2"/>
+                        <rect x="520" y="58" width="12" height="30" fill="#475569" rx="2"/>
+                        <rect x="820" y="58" width="12" height="30" fill="#475569" rx="2"/>
+                        <circle cx="526" cy="45" r="14" fill="#dc2626" stroke="#991b1b" stroke-width="3"/> <!-- Valve Wheel -->
+
+                        <!-- Roof Steel Trusses & Girders -->
+                        <path d="M 0,20 L 1000,20 M 0,50 L 1000,50" stroke="url(#metalBeam)" stroke-width="12"/>
+                        <!-- Truss Diagonal Bracing -->
+                        <path d="M 0,20 L 50,50 L 100,20 L 150,50 L 200,20 L 250,50 L 300,20 L 350,50 L 400,20 L 450,50 L 500,20 L 550,50 L 600,20 L 650,50 L 700,20 L 750,50 L 800,20 L 850,50 L 900,20 L 950,50 L 1000,20" stroke="#334155" stroke-width="4" fill="none"/>
+
+                        <!-- Structural Pillars -->
+                        <rect x="220" y="0" width="28" height="460" fill="url(#metalBeam)"/>
+                        <rect x="780" y="0" width="28" height="460" fill="url(#metalBeam)"/>
+
+                        <!-- Safety Posters on Wall -->
+                        <g transform="translate(270, 160)">
+                            <rect x="0" y="0" width="70" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" rx="3"/>
+                            <rect x="5" y="5" width="60" height="18" fill="#1e40af"/>
+                            <text x="35" y="17" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="bold">SEGURIDAD</text>
+                            <circle cx="35" cy="48" r="18" fill="#1e3a8a"/>
+                            <text x="35" y="53" text-anchor="middle" fill="#ffffff" font-size="16">🪖</text>
+                            <text x="35" y="78" text-anchor="middle" fill="#0f172a" font-size="6" font-weight="bold">USO OBLIGATORIO</text>
+                        </g>
+
+                        <g transform="translate(680, 160)">
+                            <rect x="0" y="0" width="70" height="90" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" rx="3"/>
+                            <rect x="5" y="5" width="60" height="18" fill="#dc2626"/>
+                            <text x="35" y="17" text-anchor="middle" fill="#ffffff" font-size="7" font-weight="bold">PELIGRO</text>
+                            <polygon points="35,30 55,65 15,65" fill="#f59e0b" stroke="#78350f" stroke-width="1.5"/>
+                            <text x="35" y="58" text-anchor="middle" fill="#000" font-size="14" font-weight="bold">!</text>
+                            <text x="35" y="78" text-anchor="middle" fill="#0f172a" font-size="5" font-weight="bold">TRABAJO EN ALTURA</text>
+                        </g>
+
+                        <!-- Concrete Floor -->
+                        <rect x="0" y="450" width="1000" height="150" fill="url(#floorGrad)"/>
+                        <!-- Expansion Joints on Floor -->
+                        <line x1="0" y1="480" x2="1000" y2="480" stroke="#0f172a" stroke-width="3"/>
+                        <line x1="0" y1="540" x2="1000" y2="540" stroke="#0f172a" stroke-width="2"/>
+                        <line x1="300" y1="450" x2="200" y2="600" stroke="#0f172a" stroke-width="3"/>
+                        <line x1="700" y1="450" x2="800" y2="600" stroke="#0f172a" stroke-width="3"/>
+
+                        <!-- Floor Hazard Warning Striping -->
+                        <rect x="0" y="450" width="1000" height="12" fill="url(#hazardStripes)"/>
+
+                        <!-- Oil Stain on floor under ladder -->
+                        <ellipse cx="720" cy="510" rx="65" ry="18" fill="#090d16" opacity="0.75"/>
+                        <ellipse cx="710" cy="508" rx="40" ry="10" fill="#1e1b4b" opacity="0.4"/>
+
+                        <!-- Light Fixtures & Volumetric Light Cones -->
+                        <!-- Lamp 1 (Left - Work Lamp) -->
+                        <g transform="translate(320, 50)">
+                            <line x1="0" y1="0" x2="0" y2="80" stroke="#64748b" stroke-width="3"/>
+                            <polygon points="-25,80 25,80 35,110 -35,110" fill="#475569" stroke="#334155" stroke-width="2"/>
+                            <ellipse cx="0" cy="110" rx="35" ry="8" fill="#fbbf24"/>
+                            <!-- Light Beam Cone -->
+                            <polygon points="-30,110 30,110 180,410 -180,410" fill="url(#lampCone)" style="mix-blend-mode: screen;"/>
+                        </g>
+
+                        <!-- Lamp 2 (Right - Broken/High Lamp) -->
+                        <g transform="translate(720, 50)">
+                            <line x1="0" y1="0" x2="0" y2="60" stroke="#64748b" stroke-width="3"/>
+                            <polygon points="-25,60 25,60 35,90 -35,90" fill="#334155" stroke="#1e293b" stroke-width="2"/>
+                            <ellipse cx="0" cy="90" rx="35" ry="8" fill="#ef4444" opacity="0.8"/>
+                            <polygon points="-25,90 25,90 140,410 -140,410" fill="url(#redLampCone)" style="mix-blend-mode: screen;"/>
+                            <!-- Sparks from broken fixture -->
+                            <circle cx="-5" cy="95" r="2" fill="#fbbf24"/>
+                            <circle cx="12" cy="102" r="1.5" fill="#f59e0b"/>
+                            <line x1="0" y1="90" x2="-8" y2="105" stroke="#f59e0b" stroke-width="1.5"/>
+                        </g>
+
+                        <!-- Scaffolding Structure (Background Right) -->
+                        <g transform="translate(800, 100)">
+                            <!-- Vertical Poles -->
+                            <rect x="0" y="0" width="8" height="360" fill="#64748b"/>
+                            <rect x="120" y="0" width="8" height="360" fill="#64748b"/>
+                            <!-- Horizontal Bars -->
+                            <rect x="0" y="100" width="128" height="6" fill="#475569"/>
+                            <rect x="0" y="220" width="128" height="6" fill="#475569"/>
+                            <rect x="0" y="340" width="128" height="6" fill="#475569"/>
+                            <!-- Cross Bracing -->
+                            <line x1="0" y1="100" x2="128" y2="220" stroke="#475569" stroke-width="4"/>
+                            <line x1="128" y1="100" x2="0" y2="220" stroke="#475569" stroke-width="4"/>
+                            <line x1="0" y1="220" x2="128" y2="340" stroke="#475569" stroke-width="4"/>
+                            <line x1="128" y1="220" x2="0" y2="340" stroke="#475569" stroke-width="4"/>
+                            <!-- Scaffold Wood Planks -->
+                            <rect x="-15" y="212" width="155" height="10" fill="#78350f" rx="2"/>
+                        </g>
+
+                        <!-- Fallen Step Ladder on Floor -->
+                        <g transform="translate(620, 485) rotate(78)">
+                            <rect x="0" y="0" width="14" height="240" fill="#94a3b8" rx="2"/>
+                            <rect x="45" y="0" width="14" height="240" fill="#94a3b8" rx="2"/>
+                            <!-- Rungs -->
+                            <rect x="12" y="30" width="35" height="8" fill="#64748b"/>
+                            <rect x="12" y="70" width="35" height="8" fill="#64748b"/>
+                            <rect x="12" y="110" width="35" height="8" fill="#64748b"/>
+                            <rect x="12" y="150" width="35" height="8" fill="#64748b"/>
+                            <rect x="12" y="190" width="35" height="8" fill="#64748b"/>
+                            <!-- Damaged/Missing Feet -->
+                            <rect x="-2" y="236" width="18" height="10" fill="#dc2626" rx="2"/> <!-- Broken Red Rubber Pad -->
+                            <rect x="43" y="236" width="18" height="10" fill="#1e293b" opacity="0.3"/> <!-- Missing Pad side -->
+                        </g>
+
+                        <!-- Fallen Worker Silhouette Illustration -->
+                        <g transform="translate(370, 460)">
+                            <!-- Body Shadow -->
+                            <ellipse cx="90" cy="50" rx="90" ry="25" fill="#090d16" opacity="0.6"/>
+
+                            <!-- Legs / Pants (Blue Denim) -->
+                            <path d="M 110,40 L 170,55 L 165,70 L 110,52 Z" fill="#1d4ed8"/>
+                            <path d="M 105,48 L 155,75 L 145,88 L 100,58 Z" fill="#1e40af"/>
+                            <!-- Safety Boots -->
+                            <path d="M 165,52 L 185,50 L 190,62 L 165,68 Z" fill="#78350f"/>
+                            <path d="M 152,73 L 172,78 L 173,92 L 146,86 Z" fill="#451a03"/>
+
+                            <!-- Torso / High-Vis Vest (Orange with Reflective Silver Stripes) -->
+                            <path d="M 45,25 L 115,35 L 110,60 L 40,48 Z" fill="#ea580c"/>
+                            <!-- Reflective Silver Stripes -->
+                            <rect x="60" y="27" width="12" height="28" fill="#f1f5f9" transform="rotate(10 60 27)"/>
+                            <rect x="85" y="31" width="12" height="26" fill="#f1f5f9" transform="rotate(10 85 31)"/>
+
+                            <!-- Arms -->
+                            <path d="M 45,28 L 10,15 L 2,28 L 38,42 Z" fill="#3b82f6"/>
+                            <path d="M 50,42 L 30,70 L 42,78 L 60,48 Z" fill="#2563eb"/>
+                            <!-- Gloves -->
+                            <circle cx="5" cy="22" r="9" fill="#f59e0b"/>
+                            <circle cx="36" cy="74" r="9" fill="#f59e0b"/>
+
+                            <!-- Head / Hair -->
+                            <circle cx="32" cy="22" r="15" fill="#1e293b"/>
+                            <path d="M 22,12 Q 32,2 42,12 Z" fill="#475569"/>
+                        </g>
+
+                        <!-- Spilled Tool Box on Floor -->
+                        <g transform="translate(520, 500)">
+                            <!-- Open Metal Toolbox -->
+                            <rect x="0" y="0" width="45" height="25" fill="#dc2626" rx="3" transform="rotate(-15)"/>
+                            <rect x="-15" y="-12" width="40" height="15" fill="#b91c1c" rx="2" transform="rotate(-40)"/>
+                            <!-- Scattered Tools -->
+                            <path d="M 25,10 L 50,18" stroke="#cbd5e1" stroke-width="4"/> <!-- Wrench -->
+                            <circle cx="50" cy="18" r="4" fill="none" stroke="#cbd5e1" stroke-width="2"/>
+                            <rect x="10" y="22" width="20" height="5" fill="#f59e0b" rx="1"/> <!-- Screwdriver -->
+                            <line x1="30" y1="24.5" x2="42" y2="24.5" stroke="#94a3b8" stroke-width="2"/>
+                            <circle cx="-20" cy="10" r="8" fill="#3b82f6"/> <!-- Tape measure -->
+                        </g>
+
+                        <!-- Floating Dust Particles in Light Beam -->
+                        <circle cx="320" cy="180" r="2" fill="#fef08a" class="dust-particle"/>
+                        <circle cx="350" cy="240" r="1.5" fill="#ffffff" class="dust-particle" style="animation-delay: 1s;"/>
+                        <circle cx="300" cy="290" r="2.5" fill="#fef08a" class="dust-particle" style="animation-delay: 2s;"/>
+                        <circle cx="710" cy="200" r="2" fill="#fef08a" class="dust-particle" style="animation-delay: 1.5s;"/>
+                        <circle cx="740" cy="280" r="1.5" fill="#ffffff" class="dust-particle" style="animation-delay: 0.5s;"/>
+
+                        <!-- Foreground Framing Vignette Shading -->
+                        <rect x="0" y="0" width="1000" height="600" fill="none" stroke="#020617" stroke-width="20" opacity="0.8"/>
+                    </svg>
+
+                    <!-- Overlay Vignette -->
+                    <div class="absolute inset-0 bg-radial from-transparent via-slate-950/20 to-slate-950 pointer-events-none"></div>
+
+                    <!-- Incident Context Card (Top Left) -->
+                    <div class="absolute top-4 left-4 max-w-xs bg-sst-panel/95 border border-sst-border p-3 rounded-xl backdrop-blur z-10 text-xs shadow-2xl space-y-1">
+                        <div class="text-amber-400 font-bold flex items-center gap-1.5 font-heading text-sm">
+                            <span>⚠️</span> RESUMEN DEL ACCIDENTE
+                        </div>
+                        <p class="text-slate-300 leading-snug">
+                            Un trabajador sufrió una caída desde una escalera mientras realizaba labores de mantenimiento. Tu tarea es investigar qué ocurrió, recolectar evidencias y determinar las causas.
+                        </p>
+                    </div>
+
+                    <!-- Objective Box (Top Right) -->
+                    <div class="absolute top-4 right-4 bg-sst-panel/95 border border-sst-border p-3.5 rounded-xl backdrop-blur z-10 text-xs shadow-2xl space-y-2 w-52">
+                        <div class="font-heading text-amber-400 font-bold border-b border-sst-border pb-1 flex items-center justify-between">
+                            <span>OBJETIVO DEL CASO</span>
+                            <span class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/30 font-mono">FASE 1</span>
+                        </div>
+                        <ul class="space-y-1.5 font-mono text-[11px]">
+                            <li id="obj-evidence" class="flex items-center gap-1.5 text-slate-400">
+                                <span id="chk-evidence">⬜</span> Encontrar evidencias (<span id="count-evidence">0</span>/5)
+                            </li>
+                            <li id="obj-interviews" class="flex items-center gap-1.5 text-slate-400">
+                                <span id="chk-interviews">⬜</span> Entrevistar personas (<span id="count-interviews">0</span>/2)
+                            </li>
+                            <li id="obj-causes" class="flex items-center gap-1.5 text-slate-400">
+                                <span id="chk-causes">⬜</span> Identificar causas (<span id="count-causes">0</span>/5)
+                            </li>
+                            <li id="obj-conclusion" class="flex items-center gap-1.5 text-slate-400">
+                                <span id="chk-conclusion">⬜</span> Presentar conclusión
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Interactive Tactical Magnifying Glass Hotspots -->
+
+                    <!-- Hotspot 1: Casco de Seguridad -->
+                    <button onclick="inspectEvidence('helmet')" class="absolute top-[72%] left-[32%] group z-20">
+                        <div class="relative w-11 h-11 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-amber-400/60 hotspot-reticle"></div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-lg hotspot-pulse group-hover:scale-125 transition shadow-lg shadow-amber-500/50">
+                                🔍
+                            </div>
+                        </div>
+                        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none shadow-xl">Casco de seguridad</span>
+                    </button>
+
+                    <!-- Hotspot 2: Escalera Tijera -->
+                    <button onclick="inspectEvidence('ladder')" class="absolute top-[78%] left-[70%] group z-20">
+                        <div class="relative w-11 h-11 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-amber-400/60 hotspot-reticle"></div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-lg hotspot-pulse group-hover:scale-125 transition shadow-lg shadow-amber-500/50">
+                                🔍
+                            </div>
+                        </div>
+                        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none shadow-xl">Escalera de tijera</span>
+                    </button>
+
+                    <!-- Hotspot 3: Arnés / Cinturón -->
+                    <button onclick="inspectEvidence('harness')" class="absolute top-[82%] left-[51%] group z-20">
+                        <div class="relative w-11 h-11 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-amber-400/60 hotspot-reticle"></div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-lg hotspot-pulse group-hover:scale-125 transition shadow-lg shadow-amber-500/50">
+                                🔍
+                            </div>
+                        </div>
+                        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none shadow-xl">Ausencia de Arnés</span>
+                    </button>
+
+                    <!-- Hotspot 4: Orden de trabajo / ATS -->
+                    <button onclick="inspectEvidence('ats')" class="absolute top-[34%] left-[28%] group z-20">
+                        <div class="relative w-11 h-11 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-amber-400/60 hotspot-reticle"></div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-lg hotspot-pulse group-hover:scale-125 transition shadow-lg shadow-amber-500/50">
+                                🔍
+                            </div>
+                        </div>
+                        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none shadow-xl">Permiso ATS / Formato</span>
+                    </button>
+
+                    <!-- Hotspot 5: Luminaria defectuosa -->
+                    <button onclick="inspectEvidence('lamp')" class="absolute top-[12%] left-[70%] group z-20">
+                        <div class="relative w-11 h-11 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border border-amber-400/60 hotspot-reticle"></div>
+                            <div class="w-9 h-9 rounded-full bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-amber-300 text-lg hotspot-pulse group-hover:scale-125 transition shadow-lg shadow-amber-500/50">
+                                🔍
+                            </div>
+                        </div>
+                        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none shadow-xl">Luminaria industrial</span>
+                    </button>
+
+                    <!-- Radar Map Graphic (Bottom Left) -->
+                    <div class="absolute bottom-4 left-4 w-24 h-24 rounded-full border-2 border-amber-500/40 bg-slate-950/90 overflow-hidden hidden sm:flex items-center justify-center shadow-2xl backdrop-blur">
+                        <div class="w-full h-full radar-sweep rounded-full border border-amber-500/30 relative">
+                            <div class="absolute top-1/2 left-0 right-0 h-[1px] bg-amber-500/20"></div>
+                            <div class="absolute left-1/2 top-0 bottom-0 w-[1px] bg-amber-500/20"></div>
+                            <div class="absolute top-[68%] left-[38%] w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></div>
+                            <div class="absolute top-[58%] left-[72%] w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></div>
+                            <div class="absolute top-[22%] left-[30%] w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></div>
+                        </div>
+                        <span class="absolute text-amber-400 font-bold text-[9px] font-mono tracking-widest bg-slate-950/80 px-1 rounded border border-amber-500/30">RADAR SST</span>
+                    </div>
+
+                    <!-- Inventory Bag Icon Button (Bottom Right) -->
+                    <button onclick="openInventoryModal()" class="absolute bottom-4 right-4 bg-sst-panel/95 border-2 border-amber-400 p-3 rounded-xl hover:bg-slate-800 transition shadow-2xl flex items-center gap-2 group backdrop-blur">
+                        <span class="text-xl">🧰</span>
+                        <span class="font-heading font-bold text-xs text-amber-400 group-hover:underline">VER INVENTARIO</span>
+                    </button>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 4: ENTREVISTAS ==================== -->
+        <section id="screen-interviews" class="w-full h-full hidden flex flex-col p-4 overflow-y-auto">
+            <div class="max-w-5xl mx-auto w-full flex-1 flex flex-col md:flex-row gap-4">
+
+                <!-- Witnesses List -->
+                <div class="w-full md:w-1/3 bg-sst-panel border border-sst-border rounded-xl p-4 flex flex-col gap-3">
+                    <h3 class="font-heading text-lg font-bold text-amber-400 border-b border-sst-border pb-2">PERSONAS A ENTREVISTAR</h3>
+
+                    <div class="space-y-2">
+                        <!-- Witness 1 -->
+                        <button onclick="selectWitness('coworker')" id="wit-btn-coworker" class="w-full p-3 rounded-lg border border-amber-400 bg-amber-500/10 text-left flex items-center gap-3 transition">
+                            <div class="w-12 h-12 rounded-full bg-slate-800 border border-amber-400 flex items-center justify-center text-2xl">👷‍♂️</div>
+                            <div>
+                                <h4 class="font-bold text-sm text-white">Compañero de trabajo</h4>
+                                <p class="text-[11px] text-slate-400">Testigo presencial directo</p>
+                            </div>
+                        </button>
+
+                        <!-- Witness 2 -->
+                        <button onclick="selectWitness('supervisor')" id="wit-btn-supervisor" class="w-full p-3 rounded-lg border border-sst-border bg-sst-card hover:border-slate-600 text-left flex items-center gap-3 transition">
+                            <div class="w-12 h-12 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center text-2xl">🦺</div>
+                            <div>
+                                <h4 class="font-bold text-sm text-slate-200">Supervisor de Turno</h4>
+                                <p class="text-[11px] text-slate-400">Encargado de operaciones</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="mt-auto bg-slate-900/80 p-3 rounded-lg border border-sst-border text-[11px] text-slate-400 space-y-1">
+                        <span class="text-amber-400 font-bold block">💡 CONSEJO SST:</span>
+                        <p>Realiza las preguntas adecuadas para identificar si existía presión operativa o falta de supervisión.</p>
+                    </div>
+                </div>
+
+                <!-- Active Interview Dialogue Box -->
+                <div class="flex-1 bg-sst-panel border border-sst-border rounded-xl p-5 flex flex-col justify-between relative">
+
+                    <div class="flex items-center gap-4 border-b border-sst-border pb-4">
+                        <div id="witness-avatar" class="w-16 h-16 rounded-full bg-slate-800 border-2 border-amber-400 flex items-center justify-center text-3xl">
+                            👷‍♂️
+                        </div>
+                        <div>
+                            <h3 id="witness-title" class="font-heading text-xl font-bold text-amber-400">Entrevista - Compañero de trabajo</h3>
+                            <p id="witness-desc" class="text-xs text-slate-400">Operario de montaje de la planta de producción.</p>
+                        </div>
+                    </div>
+
+                    <!-- Dialogue Balloon -->
+                    <div id="interview-speech" class="my-4 bg-sst-card border border-sst-border p-4 rounded-xl text-sm leading-relaxed text-slate-200 italic font-mono min-h-[100px] flex items-center">
+                        "Él estaba cambiando una luminaria, pero no tenía el arnés puesto. Dijo que era solo un momento."
+                    </div>
+
+                    <!-- Questions List -->
+                    <div class="space-y-2">
+                        <div class="text-xs font-bold text-amber-400 tracking-wider uppercase">Selecciona una pregunta:</div>
+                        <div id="interview-questions" class="grid grid-cols-1 gap-2">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 5: TABLERO DE CAUSALIDAD (5 PORQUÉS INTERACTIVO) ==================== -->
+        <section id="screen-analysis" class="w-full h-full hidden flex flex-col p-4 overflow-y-auto">
+            <div class="max-w-6xl mx-auto w-full space-y-4">
+
+                <!-- Subheader & Methodology Tabs -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-sst-border pb-3">
+                    <div>
+                        <h2 class="font-heading text-2xl font-bold text-amber-400">TABLERO DE CAUSALIDAD</h2>
+                        <p class="text-xs text-slate-400 max-w-lg">Arrastra cada pista del panel derecho hacia el eslabón correcto de la cadena causal. Tú decides qué evidencia explica cada nivel del análisis.</p>
+                    </div>
+
+                    <div class="flex items-center gap-1 bg-sst-panel p-1 rounded-lg border border-sst-border">
+                        <button class="px-3 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded">5 Porqués</button>
+                        <button class="px-3 py-1 text-slate-400 hover:text-white text-xs rounded" onclick="alert('Metodología disponible en versión completa.')">Árbol de causas</button>
+                        <button class="px-3 py-1 text-slate-400 hover:text-white text-xs rounded" onclick="alert('Metodología disponible en versión completa.')">Ishikawa</button>
+                    </div>
+                </div>
+
+                <!-- Interactive Board -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+
+                    <!-- Causal Chain Slots (Corkboard) -->
+                    <div class="lg:col-span-7 corkboard rounded-2xl p-5">
+                        <div id="board-slots">
+                            <div id="slot-acto" data-slot="acto" class="board-slot"></div>
+                            <div class="board-connector" id="conn-1"></div>
+                            <div id="slot-condicion" data-slot="condicion" class="board-slot"></div>
+                            <div class="board-connector" id="conn-2"></div>
+                            <div id="slot-inmediata" data-slot="inmediata" class="board-slot"></div>
+                            <div class="board-connector" id="conn-3"></div>
+                            <div id="slot-basica" data-slot="basica" class="board-slot"></div>
+                            <div class="board-connector" id="conn-4"></div>
+                            <div id="slot-gestion" data-slot="gestion" class="board-slot"></div>
+                        </div>
+                    </div>
+
+                    <!-- Clue Pool -->
+                    <div class="lg:col-span-5 bg-sst-panel border border-sst-border rounded-2xl p-4 flex flex-col gap-3 min-h-[420px]">
+                        <h3 class="font-heading text-sm font-bold text-amber-400 uppercase tracking-wider border-b border-sst-border pb-2">Pruebas y testimonios recolectados</h3>
+                        <p id="board-feedback" class="text-xs font-mono min-h-[36px] px-2 py-1.5 rounded-lg bg-slate-900 border border-sst-border text-slate-400 transition-colors">
+                            Arrastra una pista sobre un eslabón de la cadena para probar tu hipótesis. No todas las pistas son causas raíz.
+                        </p>
+                        <div id="clue-pool" class="flex-1 flex flex-wrap content-start gap-4 p-2">
+                            <!-- Cards injected by JS -->
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-2 border-t border-sst-border">
+                            <span id="board-progress">0/5 causas correctas</span>
+                            <span id="board-mistakes">0 intentos fallidos</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="flex justify-end">
+                    <button id="btn-confirm-causes" onclick="confirmCausesAnalysis()" disabled class="opacity-40 cursor-not-allowed px-6 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs transition flex items-center gap-2">
+                        <span>Confirmar cadena causal</span>
+                        <span>➔</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 6: CONCLUSIÓN Y ACCIONES CORRECTIVAS ==================== -->
+        <section id="screen-conclusion" class="w-full h-full hidden flex flex-col p-4 overflow-y-auto">
+            <div class="max-w-4xl mx-auto w-full bg-sst-panel border border-sst-border rounded-xl p-6 space-y-6 shadow-2xl">
+
+                <div class="flex items-center gap-3 border-b border-sst-border pb-4">
+                    <div class="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 text-2xl">
+                        🎯
+                    </div>
+                    <div>
+                        <h2 class="font-heading text-2xl font-bold text-amber-400">CONCLUSIÓN Y ACCIONES CORRECTIVAS</h2>
+                        <p class="text-xs text-slate-400">Emita la causa raíz oficial y confirme el plan de acción para cerrar el caso.</p>
+                    </div>
+                </div>
+
+                <!-- Root Cause Box -->
+                <div class="bg-slate-900 border-l-4 border-amber-500 p-4 rounded-r-xl space-y-2">
+                    <h3 class="font-heading text-sm font-bold text-amber-400 uppercase tracking-wider">CAUSA RAÍZ DEL ACCIDENTE</h3>
+                    <p class="text-sm text-slate-200 leading-relaxed font-sans">
+                        La causa principal fue la <strong class="text-amber-400">falta de control operacional y la deficiencia en la gestión del sistema de SG-SST</strong>, lo que generó que el procedimiento de trabajo en alturas no se aplicara ni se verificara adecuadamente en campo.
+                    </p>
+                </div>
+
+                <!-- Corrective Actions Checklist -->
+                <div class="space-y-3">
+                    <h3 class="font-heading text-sm font-bold text-slate-200 tracking-wider uppercase">ACCIONES CORRECTIVAS SUGERIDAS</h3>
+
+                    <div class="space-y-2 text-xs">
+                        <label class="flex items-start gap-3 p-3 bg-sst-card border border-sst-border rounded-lg cursor-pointer hover:border-amber-500/50 transition">
+                            <input type="checkbox" checked class="mt-0.5 accent-amber-500 w-4 h-4">
+                            <span><strong>Actualizar el procedimiento de trabajo en alturas</strong> según la normatividad vigente e incluir lista de chequeo previa.</span>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 bg-sst-card border border-sst-border rounded-lg cursor-pointer hover:border-amber-500/50 transition">
+                            <input type="checkbox" checked class="mt-0.5 accent-amber-500 w-4 h-4">
+                            <span><strong>Fortalecer la supervisión y verificación en campo</strong> para la emisión obligatoria de permisos ATS antes de cualquier tarea.</span>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 bg-sst-card border border-sst-border rounded-lg cursor-pointer hover:border-amber-500/50 transition">
+                            <input type="checkbox" checked class="mt-0.5 accent-amber-500 w-4 h-4">
+                            <span><strong>Realizar re-capacitación y evaluación práctica</strong> a todo el personal operativo de mantenimiento.</span>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 bg-sst-card border border-sst-border rounded-lg cursor-pointer hover:border-amber-500/50 transition">
+                            <input type="checkbox" checked class="mt-0.5 accent-amber-500 w-4 h-4">
+                            <span><strong>Mejorar la gestión documental y auditorías internas</strong> del Sistema de Gestión de Seguridad y Salud en el Trabajo (SG-SST).</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end border-t border-sst-border">
+                    <button onclick="finishCase()" class="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-heading font-bold text-base rounded-xl shadow-lg shadow-amber-500/20 transition transform hover:scale-105">
+                        Finalizar Caso
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ==================== SCREEN 7: RESULTADO Y PUNTAJE ==================== -->
+        <section id="screen-results" class="w-full h-full hidden flex flex-col justify-center items-center p-6 overflow-y-auto">
+            <div class="max-w-2xl w-full bg-sst-panel border-2 border-amber-500 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+
+                <div class="text-center space-y-2">
+                    <div class="text-4xl mb-1">🏆</div>
+                    <h2 class="font-heading text-3xl font-bold text-amber-400 tracking-wider">RESULTADO DEL CASO</h2>
+                    <p class="text-xs text-slate-400 font-mono">INSPECCIÓN DE SEGURIDAD Y SALUD EN EL TRABAJO</p>
+                </div>
+
+                <!-- Gauge & Category Breakdown Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center bg-slate-900/80 p-5 rounded-xl border border-sst-border">
+
+                    <!-- Circular Score Badge -->
+                    <div class="sm:col-span-5 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-sst-border pb-4 sm:pb-0 sm:pr-4">
+                        <div class="w-28 h-28 rounded-full border-4 border-amber-500 flex flex-col items-center justify-center bg-slate-950 shadow-inner">
+                            <span id="score-total" class="font-heading text-4xl font-bold text-amber-400">87<span class="text-xs text-slate-400">/100</span></span>
+                        </div>
+                        <span id="score-caption" class="text-xs font-bold text-emerald-400 mt-2">¡Excelente trabajo!</span>
+                    </div>
+
+                    <!-- Category Breakdown Progress Bars -->
+                    <div class="sm:col-span-7 space-y-2.5 text-xs">
+                        <div>
+                            <div class="flex justify-between mb-1 text-slate-300 font-mono">
+                                <span>Recolección de evidencia</span>
+                                <span id="score-evidence-label" class="text-amber-400 font-bold">80%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div id="score-evidence-bar" class="bg-amber-500 h-full w-[80%] rounded-full"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 text-slate-300 font-mono">
+                                <span>Entrevistas</span>
+                                <span id="score-interviews-label" class="text-amber-400 font-bold">90%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div id="score-interviews-bar" class="bg-amber-500 h-full w-[90%] rounded-full"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 text-slate-300 font-mono">
+                                <span>Análisis causal</span>
+                                <span id="score-analysis-label" class="text-amber-400 font-bold">88%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div id="score-analysis-bar" class="bg-amber-500 h-full w-[88%] rounded-full"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between mb-1 text-slate-300 font-mono">
+                                <span>Acciones correctivas</span>
+                                <span class="text-amber-400 font-bold">85%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div class="bg-amber-500 h-full w-[85%] rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="text-center italic text-xs text-slate-400">
+                    "¡Cada investigación bien hecha salva vidas en el entorno laboral!"
+                </div>
+
+                <!-- Final Action Buttons -->
+                <div class="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                    <button onclick="openFinalReportModal()" class="px-5 py-2.5 bg-sst-card hover:bg-sst-border border border-sst-border font-bold text-xs text-white rounded-lg transition flex items-center justify-center gap-2">
+                        <span>📄</span>
+                        <span>Ver Informe</span>
+                    </button>
+                    <button onclick="goToScreen('main')" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-heading font-bold text-xs rounded-lg transition flex items-center justify-center gap-2">
+                        <span>🏠</span>
+                        <span>Volver al menú</span>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODAL 1: DETALLE DE EVIDENCIA ==================== -->
+    <div id="modal-evidence" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-sst-panel border-2 border-sst-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative flex flex-col md:flex-row gap-6">
+            <button onclick="closeModal('modal-evidence')" class="absolute top-3 right-3 text-slate-400 hover:text-white font-bold text-lg">✕</button>
+
+            <!-- Evidence Image / Visual -->
+            <div class="w-full md:w-1/2 flex flex-col gap-3">
+                <div id="ev-image-container" class="w-full h-52 bg-slate-950 border border-sst-border rounded-xl flex items-center justify-center shadow-inner overflow-hidden relative">
+                    <!-- Detailed SVG vector dynamically injected here -->
+                </div>
+                <div class="bg-emerald-950/60 border border-emerald-500/40 p-2 rounded-lg text-emerald-400 font-bold text-xs flex items-center gap-2">
+                    <span>✓</span>
+                    <span>Evidencia relevante hallada</span>
+                </div>
+            </div>
+
+            <!-- Evidence Info -->
+            <div class="w-full md:w-1/2 flex flex-col justify-between space-y-3">
+                <div>
+                    <h3 id="ev-title" class="font-heading text-xl font-bold text-amber-400">Casco de seguridad</h3>
+                    <p id="ev-desc" class="text-xs text-slate-300 font-sans leading-relaxed mt-2 bg-slate-900 p-3 rounded-lg border border-sst-border">
+                        El casco se encuentra en el suelo con signos de impacto. Puede indicar la trayectoria de la caída y la falta del barboquejo de sujeción.
+                    </p>
+                </div>
+
+                <div class="pt-4 border-t border-sst-border">
+                    <button onclick="addEvidenceToReport()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition shadow">
+                        Agregar al informe
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: INVENTARIO DE EVIDENCIAS ==================== -->
+    <div id="modal-inventory" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-sst-panel border border-sst-border rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <div class="flex justify-between items-center border-b border-sst-border pb-3">
+                <h3 class="font-heading text-lg font-bold text-amber-400">INVENTARIO DE EVIDENCIAS</h3>
+                <button onclick="closeModal('modal-inventory')" class="text-slate-400 hover:text-white font-bold">✕</button>
+            </div>
+
+            <div id="inventory-grid" class="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto">
+                <!-- Dynamic Evidence Items -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: INFORME FINAL DE ACCIDENTE ==================== -->
+    <div id="modal-report" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-amber-500 rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('modal-report')" class="absolute top-3 right-3 text-slate-400 hover:text-white font-bold text-lg">✕</button>
+
+            <div class="text-center border-b border-sst-border pb-3">
+                <h3 class="font-heading text-2xl font-bold text-white">INFORME TÉCNICO DE INVESTIGACIÓN DE ACCIDENTE</h3>
+                <p class="text-xs text-amber-400 font-mono">SISTEMA DE GESTIÓN SST - REPORTE OFICIAL</p>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-300 font-sans">
+                <div class="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-lg border border-sst-border">
+                    <div><strong>Empresa:</strong> Planta de Producción Ind.</div>
+                    <div><strong>Fecha:</strong> 12/Oct/2026</div>
+                    <div><strong>Tipo de Accidente:</strong> Caída en Altura</div>
+                    <div><strong>Gravedad:</strong> Moderado</div>
+                </div>
+
+                <div>
+                    <strong class="text-amber-400 block mb-1">EVIDENCIAS RECOLECTADAS:</strong>
+                    <ul class="list-disc list-inside space-y-1 bg-slate-950 p-3 rounded-lg border border-sst-border text-slate-400">
+                        <li>Casco de seguridad sin barboquejo suelto en el suelo.</li>
+                        <li>Escalera de tijera sin zapatas antideslizantes.</li>
+                        <li>Ausencia de arnés de seguridad o línea de vida.</li>
+                        <li>Permiso de trabajo ATS no diligenciado.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <strong class="text-amber-400 block mb-1">DIAGNÓSTICO FINAL Y CAUSA RAÍZ:</strong>
+                    <p class="bg-slate-950 p-3 rounded-lg border border-sst-border leading-relaxed">
+                        Falta de control operacional en tareas de mantenimiento en altura, originado por la omisión de procedimientos estandarizados de supervisión y permisos de trabajo de alto riesgo.
+                    </p>
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="closeModal('modal-report')" class="px-6 py-2 bg-amber-500 text-slate-950 font-bold rounded text-xs hover:bg-amber-600 transition">
+                    Cerrar Informe
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sound Synthesis for UI feedback
+        let audioEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSound(type) {
+            if (!audioEnabled) return;
+            try {
+                initAudio();
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'found') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.linearRampToValueAtTime(90, now + 0.18);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch(e) {}
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            document.getElementById('sound-icon').innerText = audioEnabled ? '🔊' : '🔇';
+        }
+
+        // Game State Data
+        const gameState = {
+            foundEvidences: new Set(),
+            interviewedWitnesses: new Set(),
+            causesIdentified: false,
+            currentEvidenceKey: null,
+            causeBoard: null // { placed: { slotKey: clueId }, mistakes: number }
+        };
+
+        const evidenceGraphics = {
+            helmet: `
+                <svg viewBox="0 0 200 200" class="w-full h-full p-2">
+                    <rect width="200" height="200" fill="#0b1329" rx="8"/>
+                    <!-- Shadow -->
+                    <ellipse cx="100" cy="155" rx="65" ry="18" fill="#030712" opacity="0.8"/>
+                    <!-- Helmet Dome -->
+                    <path d="M 40,120 C 35,60 165,60 160,120 C 170,122 175,130 160,135 C 140,140 60,140 40,135 C 25,130 30,122 40,120 Z" fill="#f59e0b" stroke="#b45309" stroke-width="3"/>
+                    <!-- Helmet Brim -->
+                    <path d="M 30,128 Q 100,150 170,128 C 178,135 168,142 155,142 Q 100,155 45,142 C 32,142 22,135 30,128 Z" fill="#d97706"/>
+                    <!-- Reflective Tape -->
+                    <path d="M 60,95 Q 100,85 140,95" stroke="#fef08a" stroke-width="8" stroke-linecap="round" fill="none"/>
+                    <!-- Impact Crack Graphic -->
+                    <path d="M 120,80 L 130,95 L 125,105 L 140,115" stroke="#78350f" stroke-width="3" fill="none"/>
+                    <!-- Unfastened Barboquejo (Chin Strap) hanging -->
+                    <path d="M 45,130 Q 35,160 65,175" stroke="#475569" stroke-width="4" stroke-dasharray="3,2" fill="none"/>
+                    <path d="M 155,130 Q 165,160 120,178" stroke="#475569" stroke-width="4" stroke-dasharray="3,2" fill="none"/>
+                    <circle cx="65" cy="175" r="4" fill="#334155"/>
+                    <text x="100" y="30" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="bold" font-family="monospace">CASCO SIN BARBOQUEJO</text>
+                </svg>
+            `,
+            ladder: `
+                <svg viewBox="0 0 200 200" class="w-full h-full p-2">
+                    <rect width="200" height="200" fill="#0b1329" rx="8"/>
+                    <!-- Ladder Rails -->
+                    <rect x="55" y="20" width="12" height="160" fill="#94a3b8" rx="2" transform="rotate(-12 55 20)"/>
+                    <rect x="115" y="20" width="12" height="160" fill="#94a3b8" rx="2" transform="rotate(-12 115 20)"/>
+                    <!-- Rungs -->
+                    <line x1="68" y1="50" x2="128" y2="38" stroke="#64748b" stroke-width="6"/>
+                    <line x1="76" y1="85" x2="136" y2="73" stroke="#64748b" stroke-width="6"/>
+                    <line x1="84" y1="120" x2="144" y2="108" stroke="#64748b" stroke-width="6"/>
+                    <line x1="92" y1="155" x2="152" y2="143" stroke="#64748b" stroke-width="6"/>
+                    <!-- Missing Shoe Indicator / Fault -->
+                    <circle cx="123" cy="173" r="14" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4,2"/>
+                    <text x="123" y="193" text-anchor="middle" fill="#ef4444" font-size="9" font-weight="bold" font-family="monospace">ZAPATA FALTANTE</text>
+                    <text x="100" y="25" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="bold" font-family="monospace">ESCALERA INESTABLE</text>
+                </svg>
+            `,
+            harness: `
+                <svg viewBox="0 0 200 200" class="w-full h-full p-2">
+                    <rect width="200" height="200" fill="#0b1329" rx="8"/>
+                    <!-- Gear Bag -->
+                    <rect x="30" y="80" width="140" height="85" fill="#1e293b" stroke="#475569" stroke-width="3" rx="10"/>
+                    <path d="M 60,80 Q 100,40 140,80" fill="none" stroke="#334155" stroke-width="6"/>
+                    <!-- Harness Straps spilling out unused -->
+                    <path d="M 60,90 Q 40,50 80,30 Q 120,50 100,90" fill="none" stroke="#ea580c" stroke-width="10"/>
+                    <path d="M 70,90 Q 50,50 90,30 Q 130,50 110,90" fill="none" stroke="#f1f5f9" stroke-width="3"/>
+                    <!-- Steel D-Ring -->
+                    <circle cx="80" cy="30" r="10" fill="none" stroke="#cbd5e1" stroke-width="4"/>
+                    <text x="100" y="145" text-anchor="middle" fill="#ef4444" font-size="12" font-weight="bold" font-family="monospace">SIN USO EN CAMPO</text>
+                </svg>
+            `,
+            ats: `
+                <svg viewBox="0 0 200 200" class="w-full h-full p-2">
+                    <rect width="200" height="200" fill="#0b1329" rx="8"/>
+                    <!-- Clipboard -->
+                    <rect x="40" y="20" width="120" height="160" fill="#78350f" rx="6"/>
+                    <rect x="48" y="32" width="104" height="140" fill="#f8fafc" rx="3"/>
+                    <!-- Metal Clip -->
+                    <rect x="75" y="14" width="50" height="14" fill="#94a3b8" rx="3"/>
+                    <!-- Form lines -->
+                    <rect x="58" y="45" width="84" height="8" fill="#0f172a"/>
+                    <rect x="58" y="60" width="60" height="5" fill="#64748b"/>
+                    <rect x="58" y="72" width="75" height="5" fill="#64748b"/>
+                    <rect x="58" y="84" width="50" height="5" fill="#64748b"/>
+                    <!-- Unsigned Stamp -->
+                    <g transform="translate(100, 125) rotate(-15)">
+                        <rect x="-40" y="-15" width="80" height="30" fill="none" stroke="#dc2626" stroke-width="3" rx="4"/>
+                        <text x="0" y="4" text-anchor="middle" fill="#dc2626" font-size="11" font-weight="bold" font-family="sans-serif">NO FIRMADO</text>
+                    </g>
+                </svg>
+            `,
+            lamp: `
+                <svg viewBox="0 0 200 200" class="w-full h-full p-2">
+                    <rect width="200" height="200" fill="#0b1329" rx="8"/>
+                    <!-- Ceiling Chain -->
+                    <line x1="100" y1="0" x2="100" y2="60" stroke="#64748b" stroke-width="4" stroke-dasharray="6,4"/>
+                    <!-- High-bay Industrial Fixture -->
+                    <polygon points="50,110 150,110 170,70 30,70" fill="#334155" stroke="#475569" stroke-width="3"/>
+                    <!-- Bulb / LED Housing -->
+                    <ellipse cx="100" cy="110" rx="50" ry="12" fill="#ef4444" opacity="0.6"/>
+                    <circle cx="100" cy="110" r="18" fill="#fef08a"/>
+                    <!-- Electrical Sparks -->
+                    <path d="M 80,115 L 65,135 M 120,115 L 135,138 M 100,122 L 102,145" stroke="#f59e0b" stroke-width="2"/>
+                    <text x="100" y="180" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="bold" font-family="monospace">ALTURA: 3.8 METROS</text>
+                </svg>
+            `
+        };
+
+        const evidenceData = {
+            helmet: {
+                title: 'Casco de seguridad',
+                desc: 'El casco se encuentra en el suelo con marcas de impacto. No cuenta con el barboquejo colocado, por lo cual se desprendió durante la caída.'
+            },
+            ladder: {
+                title: 'Escalera de tijera',
+                desc: 'La escalera carece de zapatas antideslizantes y no estaba asegurada por un segundo operador en la base.'
+            },
+            harness: {
+                title: 'Ausencia de Arnés de Seguridad',
+                desc: 'El arnés permanecía guardado en la caja de herramientas. El operario decidió realizar la labor sin conectarse a una línea de vida.'
+            },
+            ats: {
+                title: 'Permiso ATS sin firmar',
+                desc: 'El formato de Análisis de Trabajo Seguro (ATS) estaba incompleto y no contaba con la firma de autorización del supervisor.'
+            },
+            lamp: {
+                title: 'Luminaria industrial',
+                desc: 'Luminaria de mantenimiento a 3.8 metros de altura. Trabajo no rutinario calificado como tarea en altura.'
+            }
+        };
+
+        const interviewData = {
+            coworker: {
+                title: 'Entrevista - Compañero de trabajo',
+                role: 'Testigo presencial directo',
+                avatar: '👷‍♂️',
+                defaultText: '"Él estaba cambiando una luminaria, pero no tenía el arnés puesto. Dijo que era solo un momento."',
+                questions: [
+                    { q: '¿Había recibido capacitación para trabajo en alturas?', a: 'Sí, hicimos el curso el año pasado, pero casi nunca llenamos el permiso si la tarea dura menos de 10 minutos.' },
+                    { q: '¿Quién autorizó la actividad?', a: 'El supervisor nos dijo que la línea no podía parar sin luz, así que nos apresuramos.' },
+                    { q: '¿Cuál era el procedimiento establecido?', a: 'Usar arnés, escalera con frenos y delimitación de área, pero no había arnés disponible cerca.' }
+                ]
+            },
+            supervisor: {
+                title: 'Entrevista - Supervisor de Turno',
+                role: 'Encargado de operaciones',
+                avatar: '🦺',
+                defaultText: '"Yo asumí que ellos conocían las reglas básicas de seguridad. Había mucha prisa por la entrega del pedido."',
+                questions: [
+                    { q: '¿Verificó el permiso ATS antes del inicio?', a: 'No alcancé a firmarlo. Confié en que usarían el equipo adecuado.' },
+                    { q: '¿Se realizan inspecciones periódicas a las escaleras?', a: 'El área de SST realiza las auditorías, nosotros nos enfocamos en la producción.' }
+                ]
+            }
+        };
+
+        // ============ Tablero de Causalidad: datos ============
+        const causeSlots = [
+            { key: 'acto', label: 'ACTO INSEGURO', desc: '¿Qué hizo el trabajador de forma insegura?', accent: '#f87171' },
+            { key: 'condicion', label: 'CONDICIÓN INSEGURA', desc: '¿Qué elemento del entorno era inseguro?', accent: '#fbbf24' },
+            { key: 'inmediata', label: 'CAUSA INMEDIATA', desc: '¿Qué falló en el control directo de la tarea?', accent: '#60a5fa' },
+            { key: 'basica', label: 'CAUSA BÁSICA', desc: '¿Qué falla de fondo permitió lo anterior?', accent: '#22d3ee' },
+            { key: 'gestion', label: 'FALLA DE GESTIÓN', desc: '¿Qué falló en el sistema de gestión SST?', accent: '#c084fc' }
+        ];
+
+        const clueBank = {
+            1: [
+                { id: 'clue_harness', type: 'evidence', label: 'Arnés sin usar', text: 'El arnés permanecía guardado en la caja de herramientas; nunca se conectó a una línea de vida.', category: 'acto' },
+                { id: 'clue_ladder', type: 'evidence', label: 'Escalera sin zapatas', text: 'La escalera de tijera no tenía zapatas antideslizantes ni fue asegurada en la base.', category: 'condicion' },
+                { id: 'clue_ats', type: 'evidence', label: 'ATS sin firmar', text: 'El permiso de trabajo seguro estaba incompleto y sin autorización del supervisor.', category: 'inmediata' },
+                { id: 'clue_coworker', type: 'testimony', label: 'Testimonio del compañero', text: '"Casi nunca llenamos el permiso si la tarea dura menos de 10 minutos."', category: 'basica' },
+                { id: 'clue_supervisor', type: 'testimony', label: 'Testimonio del supervisor', text: '"El área de SST hace las auditorías; nosotros nos enfocamos en la producción."', category: 'gestion' },
+                { id: 'clue_helmet', type: 'evidence', label: 'Casco sin barboquejo', text: 'Se desprendió durante la caída, pero no explica por qué ocurrió el accidente.', category: null },
+                { id: 'clue_lamp', type: 'evidence', label: 'Luminaria dañada', text: 'Fue el motivo de la tarea de mantenimiento, no una causa del accidente.', category: null }
+            ]
+        };
+
+        // Navigation Controller
+        function goToScreen(screenId) {
+            playSound('click');
+            const screens = ['main', 'levels', 'scene', 'interviews', 'analysis', 'conclusion', 'results'];
+            screens.forEach(s => {
+                const el = document.getElementById(`screen-${s}`);
+                if (el) el.classList.add('hidden');
+            });
+            const target = document.getElementById(`screen-${screenId}`);
+            if (target) target.classList.remove('hidden');
+        }
+
+        function startLevel(lvl) {
+            goToScreen('scene');
+            updateObjectivesUI();
+        }
+
+        function switchCaseTab(tab) {
+            playSound('click');
+            // Reset button styles
+            ['scene', 'interviews', 'analysis', 'conclusion'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (btn) {
+                    btn.className = 'px-3 py-1 bg-sst-card text-slate-300 hover:text-white rounded text-xs border border-sst-border transition';
+                }
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tab}`);
+            if (activeBtn) activeBtn.className = 'px-3 py-1 bg-amber-500 text-slate-950 font-bold rounded text-xs transition';
+
+            if (tab === 'analysis') renderAnalysisBoard();
+
+            goToScreen(tab);
+        }
+
+        // Evidence System Logic
+        function inspectEvidence(key) {
+            playSound('found');
+            const item = evidenceData[key];
+            const svgGraphic = evidenceGraphics[key];
+            if (!item) return;
+
+            gameState.currentEvidenceKey = key;
+            document.getElementById('ev-title').innerText = item.title;
+            document.getElementById('ev-desc').innerText = item.desc;
+            document.getElementById('ev-image-container').innerHTML = svgGraphic;
+
+            openModal('modal-evidence');
+        }
+
+        function addEvidenceToReport() {
+            if (gameState.currentEvidenceKey) {
+                gameState.foundEvidences.add(gameState.currentEvidenceKey);
+                closeModal('modal-evidence');
+                updateObjectivesUI();
+                renderInventoryGrid();
+            }
+        }
+
+        function updateObjectivesUI() {
+            // Evidences
+            const evCount = gameState.foundEvidences.size;
+            document.getElementById('count-evidence').innerText = evCount;
+            if (evCount >= 5) {
+                document.getElementById('chk-evidence').innerText = '✅';
+                document.getElementById('obj-evidence').classList.add('text-emerald-400');
+            }
+
+            // Interviews
+            const intCount = gameState.interviewedWitnesses.size;
+            document.getElementById('count-interviews').innerText = intCount;
+            if (intCount >= 2) {
+                document.getElementById('chk-interviews').innerText = '✅';
+                document.getElementById('obj-interviews').classList.add('text-emerald-400');
+            }
+
+            // Causes (driven by the causality board, can go up or down as the player edits it)
+            const causesFilled = gameState.causeBoard ? Object.keys(gameState.causeBoard.placed).length : 0;
+            document.getElementById('count-causes').innerText = causesFilled;
+            const chkCauses = document.getElementById('chk-causes');
+            const objCauses = document.getElementById('obj-causes');
+            if (causesFilled >= 5) {
+                chkCauses.innerText = '✅';
+                objCauses.classList.add('text-emerald-400');
+            } else {
+                chkCauses.innerText = '⬜';
+                objCauses.classList.remove('text-emerald-400');
+            }
+        }
+
+        function renderInventoryGrid() {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = '';
+
+            if (gameState.foundEvidences.size === 0) {
+                grid.innerHTML = '<p class="col-span-2 text-xs text-slate-500 text-center p-4">No has recolectado evidencias aún.</p>';
+                return;
+            }
+
+            gameState.foundEvidences.forEach(key => {
+                const ev = evidenceData[key];
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-sst-border p-3 rounded-lg flex items-center gap-2';
+                card.innerHTML = `
+                    <div class="w-10 h-10 bg-slate-950 rounded flex items-center justify-center overflow-hidden border border-amber-500/30">
+                        ${evidenceGraphics[key]}
+                    </div>
+                    <span class="text-xs font-bold text-slate-200">${ev.title}</span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openInventoryModal() {
+            playSound('click');
+            renderInventoryGrid();
+            openModal('modal-inventory');
+        }
+
+        // Interview Logic
+        function selectWitness(key) {
+            playSound('click');
+            gameState.interviewedWitnesses.add(key);
+            updateObjectivesUI();
+
+            const data = interviewData[key];
+            document.getElementById('witness-title').innerText = data.title;
+            document.getElementById('witness-desc').innerText = data.role;
+            document.getElementById('witness-avatar').innerText = data.avatar;
+            document.getElementById('interview-speech').innerText = data.defaultText;
+
+            const container = document.getElementById('interview-questions');
+            container.innerHTML = '';
+
+            data.questions.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left bg-sst-card hover:bg-slate-800 p-2.5 rounded-lg border border-sst-border text-xs text-slate-200 transition flex items-center justify-between';
+                btn.innerHTML = `<span>▶ ${item.q}</span> <span class="text-amber-400 font-bold text-[10px]">PREGUNTAR</span>`;
+                btn.onclick = () => {
+                    playSound('click');
+                    document.getElementById('interview-speech').innerText = `"${item.a}"`;
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // ============ Tablero de Causalidad: lógica del juego ============
+        function initCauseBoard() {
+            if (!gameState.causeBoard) {
+                gameState.causeBoard = { placed: {}, mistakes: 0 };
+            }
+        }
+
+        function getClueById(id) {
+            return clueBank[1].find(c => c.id === id);
+        }
+
+        function renderAnalysisBoard() {
+            initCauseBoard();
+
+            const pool = document.getElementById('clue-pool');
+            if (!pool) return;
+            const placedIds = Object.values(gameState.causeBoard.placed);
+            pool.innerHTML = '';
+            clueBank[1]
+                .filter(c => !placedIds.includes(c.id))
+                .forEach(clue => pool.appendChild(buildClueCard(clue)));
+
+            causeSlots.forEach(slot => {
+                const el = document.getElementById(`slot-${slot.key}`);
+                if (!el) return;
+                el.style.setProperty('--accent', slot.accent);
+                const clueId = gameState.causeBoard.placed[slot.key];
+
+                if (clueId) {
+                    const clue = getClueById(clueId);
+                    el.classList.add('board-slot-filled');
+                    el.innerHTML = `
+                        <div class="p-3 flex items-start justify-between gap-2">
+                            <div>
+                                <span class="text-[10px] font-bold tracking-wider" style="color:${slot.accent}">${slot.label}</span>
+                                <p class="text-xs text-slate-100 font-semibold mt-0.5">${clue.label}</p>
+                                <p class="text-[11px] text-slate-400 italic mt-0.5">${clue.text}</p>
+                            </div>
+                            <button onclick="removeFromSlot('${slot.key}')" class="text-slate-500 hover:text-red-400 text-xs shrink-0" title="Quitar pista">✕</button>
+                        </div>`;
+                } else {
+                    el.classList.remove('board-slot-filled');
+                    el.innerHTML = `
+                        <div class="flex items-center justify-between gap-3 p-3">
+                            <div>
+                                <span class="text-[10px] font-bold tracking-wider" style="color:${slot.accent}">${slot.label}</span>
+                                <p class="text-[11px] text-slate-300/80 italic mt-0.5">${slot.desc}</p>
+                            </div>
+                            <span class="text-lg opacity-40">🕳️</span>
+                        </div>`;
+                }
+            });
+
+            updateBoardProgressUI();
+        }
+
+        function buildClueCard(clue) {
+            const card = document.createElement('div');
+            card.className = 'clue-card w-[150px] p-3 rounded-lg text-[11px] leading-snug';
+            card.style.setProperty('--tilt', (Math.random() * 6 - 3).toFixed(1) + 'deg');
+            card.dataset.clueId = clue.id;
+            card.innerHTML = `
+                <span class="block text-[9px] font-bold uppercase tracking-wider ${clue.type === 'testimony' ? 'text-blue-700' : 'text-amber-700'} mb-1">${clue.type === 'testimony' ? '🗣️ Testimonio' : '🔎 Evidencia'}</span>
+                <span class="block font-bold text-slate-900 mb-1">${clue.label}</span>
+                <span class="block text-slate-700">${clue.text}</span>
+            `;
+            attachCardDrag(card, clue);
+            return card;
+        }
+
+        function attachCardDrag(cardEl, clue) {
+            cardEl.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                const rect = cardEl.getBoundingClientRect();
+
+                const ghost = cardEl.cloneNode(true);
+                ghost.classList.add('clue-card-dragging');
+                ghost.style.position = 'fixed';
+                ghost.style.left = rect.left + 'px';
+                ghost.style.top = rect.top + 'px';
+                ghost.style.width = rect.width + 'px';
+                ghost.style.zIndex = '999';
+                ghost.style.pointerEvents = 'none';
+                ghost.style.transform = 'rotate(-3deg) scale(1.06)';
+                document.body.appendChild(ghost);
+                cardEl.style.opacity = '0.2';
+
+                const offsetX = e.clientX - rect.left;
+                const offsetY = e.clientY - rect.top;
+
+                function move(ev) {
+                    ghost.style.left = (ev.clientX - offsetX) + 'px';
+                    ghost.style.top = (ev.clientY - offsetY) + 'px';
+                    document.querySelectorAll('.board-slot').forEach(s => s.classList.remove('board-slot-hover'));
+                    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+                    const slotEl = target && target.closest('.board-slot');
+                    if (slotEl && !slotEl.classList.contains('board-slot-filled')) {
+                        slotEl.classList.add('board-slot-hover');
+                    }
+                }
+
+                function up(ev) {
+                    document.removeEventListener('pointermove', move);
+                    document.removeEventListener('pointerup', up);
+                    ghost.remove();
+                    cardEl.style.opacity = '';
+                    document.querySelectorAll('.board-slot').forEach(s => s.classList.remove('board-slot-hover'));
+
+                    const target = document.elementFromPoint(ev.clientX, ev.clientY);
+                    const slotEl = target && target.closest('.board-slot');
+                    if (slotEl && !slotEl.classList.contains('board-slot-filled')) {
+                        handleDropOnSlot(clue, slotEl.dataset.slot);
+                    }
+                }
+
+                document.addEventListener('pointermove', move);
+                document.addEventListener('pointerup', up);
+            });
+        }
+
+        function handleDropOnSlot(clue, slotKey) {
+            const feedback = document.getElementById('board-feedback');
+            const slotInfo = causeSlots.find(s => s.key === slotKey);
+
+            if (clue.category === slotKey) {
+                gameState.causeBoard.placed[slotKey] = clue.id;
+                playSound('found');
+                feedback.textContent = `✅ Correcto: "${clue.label}" explica la ${slotInfo.label.toLowerCase()}.`;
+                feedback.className = 'text-xs font-mono min-h-[36px] px-2 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 transition-colors';
+                renderAnalysisBoard();
+                flashSlot(slotKey, true);
+                checkBoardComplete();
+            } else {
+                gameState.causeBoard.mistakes++;
+                playSound('wrong');
+                feedback.textContent = `❌ "${clue.label}" no corresponde a "${slotInfo.label}". Piénsalo de nuevo.`;
+                feedback.className = 'text-xs font-mono min-h-[36px] px-2 py-1.5 rounded-lg bg-red-950/60 border border-red-500/40 text-red-400 transition-colors';
+                flashSlot(slotKey, false);
+                updateBoardProgressUI();
+            }
+        }
+
+        function flashSlot(slotKey, correct) {
+            const el = document.getElementById(`slot-${slotKey}`);
+            if (!el) return;
+            el.classList.remove('board-slot-wrong', 'board-slot-correct-flash');
+            void el.offsetWidth;
+            el.classList.add(correct ? 'board-slot-correct-flash' : 'board-slot-wrong');
+            setTimeout(() => el.classList.remove('board-slot-wrong', 'board-slot-correct-flash'), 450);
+        }
+
+        function updateBoardProgressUI() {
+            const filled = gameState.causeBoard ? Object.keys(gameState.causeBoard.placed).length : 0;
+            document.getElementById('board-progress').innerText = `${filled}/5 causas correctas`;
+            document.getElementById('board-mistakes').innerText = `${gameState.causeBoard ? gameState.causeBoard.mistakes : 0} intentos fallidos`;
+
+            causeSlots.forEach((s, i) => {
+                if (i === 0) return;
+                const prevFilled = !!gameState.causeBoard.placed[causeSlots[i - 1].key];
+                const curFilled = !!gameState.causeBoard.placed[s.key];
+                const conn = document.getElementById(`conn-${i}`);
+                if (conn) conn.classList.toggle('connected', prevFilled && curFilled);
+            });
+        }
+
+        function checkBoardComplete() {
+            const allFilled = causeSlots.every(s => gameState.causeBoard.placed[s.key]);
+            const btn = document.getElementById('btn-confirm-causes');
+            if (allFilled) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-40', 'cursor-not-allowed');
+                gameState.causesIdentified = true;
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-40', 'cursor-not-allowed');
+                gameState.causesIdentified = false;
+            }
+            updateBoardProgressUI();
+            updateObjectivesUI();
+        }
+
+        function removeFromSlot(slotKey) {
+            if (!gameState.causeBoard) return;
+            playSound('click');
+            delete gameState.causeBoard.placed[slotKey];
+            renderAnalysisBoard();
+            checkBoardComplete();
+        }
+
+        function confirmCausesAnalysis() {
+            if (!gameState.causeBoard || Object.keys(gameState.causeBoard.placed).length < 5) return;
+            playSound('click');
+            switchCaseTab('conclusion');
+        }
+
+        function finishCase() {
+            playSound('click');
+            document.getElementById('chk-conclusion').innerText = '✅';
+            document.getElementById('obj-conclusion').classList.add('text-emerald-400');
+            updateResultsScreen();
+            goToScreen('results');
+        }
+
+        // Puntaje dinámico según el desempeño real del jugador
+        function updateResultsScreen() {
+            const evidencePct = Math.round((gameState.foundEvidences.size / 5) * 100);
+            const interviewsPct = Math.round((gameState.interviewedWitnesses.size / 2) * 100);
+            const mistakes = gameState.causeBoard ? gameState.causeBoard.mistakes : 0;
+            const analysisPct = Math.max(20, 100 - (mistakes * 10));
+            const total = Math.round(evidencePct * 0.35 + interviewsPct * 0.25 + analysisPct * 0.4);
+
+            document.getElementById('score-total').innerHTML = `${total}<span class="text-xs text-slate-400">/100</span>`;
+            document.getElementById('score-evidence-label').innerText = `${evidencePct}%`;
+            document.getElementById('score-evidence-bar').style.width = `${evidencePct}%`;
+            document.getElementById('score-interviews-label').innerText = `${interviewsPct}%`;
+            document.getElementById('score-interviews-bar').style.width = `${interviewsPct}%`;
+            document.getElementById('score-analysis-label').innerText = `${analysisPct}%`;
+            document.getElementById('score-analysis-bar').style.width = `${analysisPct}%`;
+
+            const caption = document.getElementById('score-caption');
+            if (total >= 85) caption.innerText = '¡Excelente trabajo!';
+            else if (total >= 65) caption.innerText = 'Buen trabajo, puedes mejorar.';
+            else caption.innerText = 'Investigación incompleta, revisa las pistas.';
+        }
+
+        function openFinalReportModal() {
+            playSound('click');
+            openModal('modal-report');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Initialization
+        window.onload = function() {
+            selectWitness('coworker');
+        }
+    </script>
+</body>
+</html>
