@@ -1,0 +1,1023 @@
+<style>
+.sst-form-container {
+  --sst-azul-oscuro: #17365d;
+  --sst-azul-hover: #214875;
+  --sst-azul: #1685d9;
+  --sst-azul-fuerte: #086bb5;
+  --sst-texto: #243447;
+  --sst-texto-suave: #606b78;
+  --sst-borde: #ccd3da;
+  --sst-error: #a33b3b;
+  --sst-exito: #1e7a46;
+
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 5px 22px rgba(0, 0, 0, .08);
+  font-family: Arial, sans-serif;
+  color: var(--sst-texto);
+}
+
+.sst-form-container *,
+.sst-form-container *::before,
+.sst-form-container *::after {
+  box-sizing: border-box;
+}
+
+/* Garantiza que el atributo hidden funcione aunque otra regla defina display. */
+.sst-form-container [hidden] {
+  display: none !important;
+}
+
+.sst-form-container h2 {
+  margin: 0 0 8px;
+  color: var(--sst-azul-oscuro);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.sst-description {
+  margin: 0 0 24px;
+  color: var(--sst-texto-suave);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.sst-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+.sst-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+
+.sst-field label,
+.sst-field .sst-label {
+  color: #263746;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sst-field input,
+.sst-field select,
+.sst-field textarea {
+  width: 100%;
+  min-height: 43px;
+  padding: 12px;
+  border: 1px solid var(--sst-borde);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--sst-texto);
+  font: inherit;
+  font-size: 15px;
+}
+
+.sst-field textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+.sst-field input:focus,
+.sst-field select:focus,
+.sst-field textarea:focus {
+  outline: none;
+  border-color: #1d5b91;
+  box-shadow: 0 0 0 2px rgba(29, 91, 145, .12);
+}
+
+.sst-field select:disabled {
+  background: #f1f3f5;
+  cursor: not-allowed;
+}
+
+.sst-privacidad {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 8px 0 20px;
+  font-size: 13px;
+  color: #34465c;
+  line-height: 1.5;
+}
+
+.sst-privacidad input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.sst-privacidad a {
+  color: var(--sst-azul);
+}
+
+.sst-submit {
+  display: block;
+  width: 100%;
+  padding: 15px 20px;
+  background: var(--sst-azul-oscuro);
+  color: #ffffff !important;
+  border: 0;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sst-submit:hover {
+  background: var(--sst-azul-hover);
+}
+
+.sst-submit:focus-visible {
+  outline: 3px solid rgba(22, 133, 217, .4);
+  outline-offset: 2px;
+}
+
+.sst-submit:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.sst-calendario {
+  width: auto;
+  align-self: flex-start;
+  background: var(--sst-azul);
+}
+
+.sst-calendario:hover {
+  background: var(--sst-azul-fuerte);
+}
+
+#mensajeCalendario {
+  margin: 0;
+  color: var(--sst-texto-suave);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Agendas rápidas */
+.sst-agendas-rapidas {
+  margin: 0 0 24px;
+  padding: 18px;
+  border: 1px solid #dce8f3;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f7fbff 0%, #eef6fc 100%);
+}
+
+.sst-agendas-encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sst-etiqueta {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--sst-azul);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.sst-agendas-encabezado h3 {
+  margin: 0;
+  color: var(--sst-azul-oscuro);
+  font-size: 20px;
+}
+
+.sst-estado-agendas {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e2f1fb;
+  color: #17618e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sst-lista-agendas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sst-slot-contenedor {
+  position: relative;
+}
+
+.sst-slot {
+  display: flex;
+  width: 100%;
+  min-height: 92px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid #c9ddea;
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--sst-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.sst-slot:hover,
+.sst-slot:focus-visible {
+  border-color: var(--sst-azul);
+  box-shadow: 0 4px 12px rgba(22, 133, 217, .16);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.sst-slot strong {
+  color: var(--sst-azul-oscuro);
+  font-size: 14px;
+}
+
+.sst-slot span {
+  color: #5e6d7c;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.sst-slot[aria-pressed="true"] {
+  border-color: var(--sst-azul);
+  background: #eaf6ff;
+  box-shadow: 0 0 0 2px rgba(22, 133, 217, .14);
+}
+
+.sst-limpiar-slot {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 7px;
+  border: 1px solid #e0a5a5;
+  border-radius: 5px;
+  background: #fff7f7;
+  color: var(--sst-error);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sst-limpiar-slot:hover,
+.sst-limpiar-slot:focus-visible {
+  border-color: #bd5a5a;
+  background: #ffecec;
+  outline: none;
+}
+
+.sst-agendas-vacias,
+.sst-agendas-cargando {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 13px;
+  border: 1px dashed #b8cbd9;
+  border-radius: 8px;
+  color: #607080;
+  font-size: 13px;
+  text-align: center;
+}
+
+.sst-seleccion-confirmada {
+  margin: 12px 0 0;
+  color: #17618e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sst-estado-envio {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border-radius: 7px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.sst-estado-envio.exito {
+  background: #eaf7ef;
+  color: var(--sst-exito);
+}
+
+.sst-estado-envio.error {
+  background: #fff1f1;
+  color: var(--sst-error);
+}
+
+/* Las media queries van al final para que no las anulen las reglas base. */
+@media (max-width: 760px) {
+  .sst-lista-agendas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 650px) {
+  .sst-form-container {
+    padding: 18px;
+  }
+
+  .sst-agendas-encabezado {
+    flex-direction: column;
+  }
+
+  .sst-lista-agendas,
+  .sst-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sst-slot {
+    transition: none;
+  }
+
+  .sst-slot:hover,
+  .sst-slot:focus-visible {
+    transform: none;
+  }
+}
+</style>
+
+<div class="sst-form-container">
+  <form
+    id="sstForm"
+    action="https://api.web3forms.com/submit"
+    method="POST"
+    accept-charset="UTF-8"
+    novalidate>
+
+    <!-- Configuración de Web3Forms -->
+    <input type="hidden" name="access_key" value="172536c1-eabb-44b7-b8fb-535e0036ca51">
+    <input type="hidden" name="subject" id="asuntoFormulario" value="Nueva solicitud de asesoría SST">
+    <input type="hidden" name="from_name" value="Formulario Asesoría SST">
+
+    <!-- Estos campos alimentan la notificación y la autorespuesta de Web3Forms. -->
+    <input type="hidden" name="Agenda seleccionada" id="agendaSeleccionada" value="">
+    <input type="hidden" name="Mensaje de confirmación" id="mensajeConfirmacion" value="">
+    <input type="hidden" name="Enlace de reserva Bitrix24" id="enlaceBitrix24" value="">
+
+    <!-- Antispam -->
+    <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+
+    <h2>Solicitud de asesoría SST</h2>
+
+    <p class="sst-description">
+      Elige una opción rápida de agenda o completa tus datos y selecciona un asesor.
+    </p>
+
+    <!-- Agendas rápidas: se actualizan según zona, especialidad y asesor. -->
+    <section class="sst-agendas-rapidas" aria-labelledby="tituloAgendas">
+      <div class="sst-agendas-encabezado">
+        <div>
+          <span class="sst-etiqueta">Disponibilidad inmediata</span>
+          <h3 id="tituloAgendas">Agendas disponibles</h3>
+        </div>
+        <span id="estadoAgendas" class="sst-estado-agendas">Próximos espacios</span>
+      </div>
+
+      <div id="listaAgendas" class="sst-lista-agendas">
+        <p class="sst-agendas-cargando">Consultando próximos espacios...</p>
+      </div>
+
+      <p id="seleccionAgenda" class="sst-seleccion-confirmada" aria-live="polite" hidden></p>
+    </section>
+
+    <div class="sst-grid">
+      <div class="sst-field">
+        <label for="nombre">Nombre completo *</label>
+        <input id="nombre" name="Nombre completo" type="text" autocomplete="name" required>
+      </div>
+
+      <div class="sst-field">
+        <label for="empresa">Empresa *</label>
+        <input id="empresa" name="Empresa" type="text" autocomplete="organization" required>
+      </div>
+
+      <div class="sst-field">
+        <label for="correo">Correo electrónico *</label>
+        <!-- Web3Forms usa name="email" para enviar la autorespuesta al cliente. -->
+        <input id="correo" name="email" type="email" autocomplete="email" required>
+      </div>
+
+      <div class="sst-field">
+        <label for="telefono">Teléfono *</label>
+        <input
+          id="telefono"
+          name="Teléfono"
+          type="tel"
+          autocomplete="tel"
+          inputmode="tel"
+          pattern="[0-9+() \-]{7,20}"
+          title="Escribe un número válido (7 a 20 dígitos)"
+          required>
+      </div>
+
+      <div class="sst-field">
+        <label for="zona">Zona de cobertura *</label>
+        <select id="zona" name="Zona de cobertura" required>
+          <option value="">Selecciona una zona</option>
+          <option value="Norte">Norte</option>
+          <option value="Sur">Sur</option>
+          <option value="Centro">Centro</option>
+          <option value="Occidente">Occidente</option>
+          <option value="Periferico Norte">Periférico Norte</option>
+          <option value="Periferico Sur">Periférico Sur</option>
+          <option value="Periferico Occidente">Periférico Occidente</option>
+          <option value="Periferico Noroccidente">Periférico Noroccidente</option>
+        </select>
+      </div>
+
+      <div class="sst-field">
+        <label for="especialidad">Especialidad *</label>
+        <select id="especialidad" name="Especialidad" required disabled>
+          <option value="">Primero selecciona una zona</option>
+        </select>
+      </div>
+
+      <div class="sst-field">
+        <label for="asesor">Asesor *</label>
+        <select id="asesor" name="Asesor" required disabled>
+          <option value="">Primero selecciona zona y especialidad</option>
+        </select>
+      </div>
+
+      <div class="sst-field">
+        <label for="fecha">Fecha de la cita *</label>
+        <input id="fecha" name="Fecha de la cita" type="date" required>
+      </div>
+
+      <div class="sst-field">
+        <label for="hora">Hora de la cita *</label>
+        <input id="hora" name="Hora de la cita" type="time" min="07:00" max="18:00" step="900" required>
+      </div>
+
+      <div class="sst-field">
+        <label for="servicio">Tipo de servicio *</label>
+        <select id="servicio" name="Tipo de servicio" required>
+          <option value="">Selecciona un servicio</option>
+          <option value="Asesoría SST">Asesoría SST</option>
+          <option value="Capacitación SST">Capacitación SST</option>
+          <option value="Evaluación SG-SST">Evaluación SG-SST</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Disponibilidad del asesor -->
+    <div class="sst-field">
+      <span class="sst-label">Disponibilidad del asesor</span>
+
+      <p id="mensajeCalendario" aria-live="polite">
+        Selecciona zona, especialidad y asesor para consultar sus horarios.
+      </p>
+
+      <button id="botonCalendario" class="sst-submit sst-calendario" type="button" hidden>
+        Abrir agenda real en Bitrix24
+      </button>
+    </div>
+
+    <div class="sst-field">
+      <label for="observaciones">Observaciones</label>
+      <textarea
+        id="observaciones"
+        name="Observaciones"
+        rows="4"
+        maxlength="1000"
+        placeholder="Describe brevemente el motivo de la asesoría"></textarea>
+    </div>
+
+    <label class="sst-privacidad">
+      <input type="checkbox" name="Autorizacion de datos personales" value="Si" required>
+      <span>
+        Autorizo el tratamiento de mis datos personales para gestionar esta
+        solicitud, conforme a la
+        <a href="/politica-de-privacidad/" target="_blank" rel="noopener noreferrer">política de tratamiento de datos</a>.
+      </span>
+    </label>
+
+    <button class="sst-submit" id="sstSubmit" type="submit">Solicitar asesoría</button>
+
+    <p id="estadoEnvio" class="sst-estado-envio" role="status" hidden></p>
+  </form>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================================================================
+     Configuración
+     ================================================================ */
+
+  /*
+    Agenda pública compartida de prueba. En producción, cada asesor debe
+    tener su propio enlace para que la disponibilidad sea independiente.
+  */
+  const AGENDA_PRUEBA_BITRIX24 = "https://b24-cmwi18.bitrix24.co/~ODn6W";
+  const MAX_SLOTS = 9;
+  const DIAS_A_MOSTRAR = 3;
+  const HORAS_POR_DIA = 2;
+
+  // Un único origen de datos por asesor: calendario, horario y asignaciones.
+  const ASESORES = [
+    { nombre: "Laura Martínez",   calendario: AGENDA_PRUEBA_BITRIX24, horas: ["09:00", "11:30", "15:00"],
+      asignaciones: { "Norte": ["Alturas", "Emergencias"], "Centro": ["Psicología"] } },
+    { nombre: "Carlos Rodríguez", calendario: AGENDA_PRUEBA_BITRIX24, horas: ["08:30", "10:00", "14:30"],
+      asignaciones: { "Norte": ["Fisioterapia", "Mecánico"], "Periferico Norte": ["Alturas"] } },
+    { nombre: "Andrés Gómez",     calendario: AGENDA_PRUEBA_BITRIX24, horas: ["09:30", "13:00", "16:00"],
+      asignaciones: { "Sur": ["Alturas", "Emergencias"], "Periferico Sur": ["Mecánico"] } },
+    { nombre: "Diana Sánchez",    calendario: AGENDA_PRUEBA_BITRIX24, horas: ["10:30", "12:00", "15:30"],
+      asignaciones: { "Sur": ["Psicología", "Fisioterapia"], "Periferico Sur": ["Psicología"] } },
+    { nombre: "Felipe Ramírez",   calendario: AGENDA_PRUEBA_BITRIX24, horas: ["08:00", "11:00", "14:00"],
+      asignaciones: { "Occidente": ["Alturas", "Mecánico"], "Periferico Occidente": ["Emergencias"] } },
+    { nombre: "Natalia Torres",   calendario: AGENDA_PRUEBA_BITRIX24, horas: ["09:00", "13:30", "16:30"],
+      asignaciones: { "Occidente": ["Psicología", "Fisioterapia"], "Periferico Noroccidente": ["Alturas"] } },
+    { nombre: "Miguel Herrera",   calendario: AGENDA_PRUEBA_BITRIX24, horas: ["08:30", "12:30", "15:00"],
+      asignaciones: { "Centro": ["Alturas", "Emergencias"], "Norte": ["Psicología"] } },
+    { nombre: "Paula Castro",     calendario: AGENDA_PRUEBA_BITRIX24, horas: ["10:00", "11:30", "14:30"],
+      asignaciones: { "Centro": ["Fisioterapia", "Mecánico"], "Periferico Noroccidente": ["Psicología"] } },
+    { nombre: "Santiago Morales", calendario: AGENDA_PRUEBA_BITRIX24, horas: ["09:30", "13:00", "16:00"],
+      asignaciones: { "Periferico Norte": ["Fisioterapia", "Emergencias"], "Periferico Noroccidente": ["Mecánico"] } },
+    { nombre: "Camila Vargas",    calendario: AGENDA_PRUEBA_BITRIX24, horas: ["08:00", "10:30", "15:30"],
+      asignaciones: { "Periferico Sur": ["Alturas"], "Periferico Occidente": ["Psicología", "Fisioterapia"],
+                      "Periferico Noroccidente": ["Emergencias"] } }
+  ];
+
+  /* ================================================================
+     Utilidades de fecha (siempre en hora local, nunca UTC)
+     ================================================================ */
+
+  const formatoFecha = new Intl.DateTimeFormat("es-CO", {
+    weekday: "short", day: "numeric", month: "short"
+  });
+
+  function dosDigitos(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  // toISOString() convierte a UTC y en Colombia (UTC-5) desfasa el día
+  // después de las 7 p. m.; por eso se arma la fecha con valores locales.
+  function fechaLocalISO(fecha) {
+    return fecha.getFullYear() + "-" + dosDigitos(fecha.getMonth() + 1) + "-" + dosDigitos(fecha.getDate());
+  }
+
+  function fechaDesdeISO(iso) {
+    const partes = iso.split("-").map(Number);
+    return new Date(partes[0], partes[1] - 1, partes[2]);
+  }
+
+  function esFinDeSemana(fecha) {
+    const dia = fecha.getDay();
+    return dia === 0 || dia === 6;
+  }
+
+  // Devuelve los próximos `cantidad` días hábiles a partir de mañana,
+  // saltando `desfase` días hábiles iniciales.
+  function proximosDiasHabiles(cantidad, desfase) {
+    const dias = [];
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    let saltados = 0;
+
+    while (dias.length < cantidad) {
+      cursor.setDate(cursor.getDate() + 1);
+      if (esFinDeSemana(cursor)) continue;
+      if (saltados < desfase) { saltados++; continue; }
+      dias.push(new Date(cursor));
+    }
+    return dias;
+  }
+
+  function textoSlot(fechaISO, hora) {
+    return formatoFecha.format(fechaDesdeISO(fechaISO)) + " · " + hora;
+  }
+
+  /* ================================================================
+     Formulario
+     ================================================================ */
+
+  function iniciarFormularioSST() {
+    const $ = function (id) { return document.getElementById(id); };
+
+    const el = {
+      formulario: $("sstForm"),
+      zona: $("zona"),
+      especialidad: $("especialidad"),
+      asesor: $("asesor"),
+      fecha: $("fecha"),
+      hora: $("hora"),
+      botonCalendario: $("botonCalendario"),
+      mensajeCalendario: $("mensajeCalendario"),
+      listaAgendas: $("listaAgendas"),
+      estadoAgendas: $("estadoAgendas"),
+      seleccionAgenda: $("seleccionAgenda"),
+      asunto: $("asuntoFormulario"),
+      agendaSeleccionada: $("agendaSeleccionada"),
+      mensajeConfirmacion: $("mensajeConfirmacion"),
+      enlaceBitrix24: $("enlaceBitrix24"),
+      botonEnviar: $("sstSubmit"),
+      estadoEnvio: $("estadoEnvio")
+    };
+
+    if (Object.keys(el).some(function (clave) { return !el[clave]; })) {
+      console.warn("Formulario SST: faltan elementos en el HTML.");
+      return;
+    }
+
+    let seleccion = null; // { asesor, fecha, hora }
+
+    el.fecha.min = fechaLocalISO(new Date());
+
+    /* ---------- Datos ---------- */
+
+    function buscarAsesor(nombre) {
+      return ASESORES.find(function (a) { return a.nombre === nombre; });
+    }
+
+    function atiende(asesor, zona, especialidad) {
+      const especialidades = asesor.asignaciones[zona];
+      if (!zona) return true;
+      if (!especialidades) return false;
+      return !especialidad || especialidades.includes(especialidad);
+    }
+
+    function asesoresFiltrados() {
+      return ASESORES.filter(function (a) {
+        return atiende(a, el.zona.value, el.especialidad.value) &&
+          (!el.asesor.value || a.nombre === el.asesor.value);
+      });
+    }
+
+    /*
+      Simulación de disponibilidad. En producción, reemplaza esta función por
+      fetch('/api/disponibilidad?...') o por la consulta a Bitrix24.
+    */
+    function obtenerSlotsDisponibles() {
+      const slots = [];
+      const vistos = new Set();
+
+      asesoresFiltrados().forEach(function (asesor, indice) {
+        proximosDiasHabiles(DIAS_A_MOSTRAR, indice % 2).forEach(function (dia) {
+          const fechaISO = fechaLocalISO(dia);
+          asesor.horas.slice(0, HORAS_POR_DIA).forEach(function (hora) {
+            const clave = asesor.nombre + "|" + fechaISO + "|" + hora;
+            if (vistos.has(clave)) return;
+            vistos.add(clave);
+            slots.push({ asesor: asesor.nombre, fecha: fechaISO, hora: hora });
+          });
+        });
+      });
+
+      return slots
+        .sort(function (a, b) {
+          return (a.fecha + a.hora).localeCompare(b.fecha + b.hora) ||
+            a.asesor.localeCompare(b.asesor, "es");
+        })
+        .slice(0, MAX_SLOTS);
+    }
+
+    /* ---------- Selects dependientes ---------- */
+
+    function llenarSelect(select, valores, mensaje) {
+      select.replaceChildren(new Option(mensaje, ""));
+      valores.forEach(function (valor) {
+        select.appendChild(new Option(valor, valor));
+      });
+      select.disabled = valores.length === 0;
+    }
+
+    function actualizarEspecialidades() {
+      const zona = el.zona.value;
+      llenarSelect(el.asesor, [], "Primero selecciona zona y especialidad");
+
+      if (!zona) {
+        llenarSelect(el.especialidad, [], "Primero selecciona una zona");
+        return;
+      }
+
+      const lista = [...new Set(
+        ASESORES.flatMap(function (a) { return a.asignaciones[zona] || []; })
+      )].sort(function (a, b) { return a.localeCompare(b, "es"); });
+
+      llenarSelect(el.especialidad, lista, "Selecciona especialidad");
+    }
+
+    function actualizarAsesores() {
+      const zona = el.zona.value;
+      const especialidad = el.especialidad.value;
+
+      if (!zona || !especialidad) {
+        llenarSelect(el.asesor, [], "Primero selecciona zona y especialidad");
+        return;
+      }
+
+      const lista = ASESORES
+        .filter(function (a) { return atiende(a, zona, especialidad); })
+        .map(function (a) { return a.nombre; });
+
+      llenarSelect(el.asesor, lista, "Selecciona asesor");
+    }
+
+    // Cuando se elige un slot desde la vista general, ajusta zona y
+    // especialidad respetando lo que el usuario ya haya elegido.
+    function ajustarFiltrosParaAsesor(nombre) {
+      const asesor = buscarAsesor(nombre);
+      if (!asesor) return;
+
+      const zonas = Object.keys(asesor.asignaciones);
+      const zona = zonas.includes(el.zona.value) ? el.zona.value : zonas[0];
+      if (zona !== el.zona.value) {
+        el.zona.value = zona;
+      }
+      actualizarEspecialidades();
+
+      const especialidades = asesor.asignaciones[zona];
+      const especialidadPrevia = el.especialidad.dataset.previa;
+      el.especialidad.value = especialidades.includes(especialidadPrevia)
+        ? especialidadPrevia
+        : especialidades[0];
+      actualizarAsesores();
+      el.asesor.value = nombre;
+    }
+
+    /* ---------- Calendario Bitrix24 ---------- */
+
+    function actualizarCalendario() {
+      const asesor = buscarAsesor(el.asesor.value);
+      const url = asesor ? asesor.calendario : "";
+
+      el.botonCalendario.hidden = !url;
+      el.botonCalendario.dataset.url = url;
+
+      if (url) {
+        el.mensajeCalendario.textContent =
+          "Consulta los horarios disponibles de " + asesor.nombre + " en Bitrix24.";
+      } else if (asesor) {
+        el.mensajeCalendario.textContent =
+          "El calendario de este asesor todavía no está configurado.";
+      } else {
+        el.mensajeCalendario.textContent =
+          "Selecciona zona, especialidad y asesor para consultar sus horarios.";
+      }
+    }
+
+    /* ---------- Agendas rápidas ---------- */
+
+    function esSeleccionado(slot) {
+      return !!seleccion &&
+        seleccion.asesor === slot.asesor &&
+        seleccion.fecha === slot.fecha &&
+        seleccion.hora === slot.hora;
+    }
+
+    function crearSlot(slot) {
+      const texto = textoSlot(slot.fecha, slot.hora);
+      const activo = esSeleccionado(slot);
+
+      const contenedor = document.createElement("div");
+      contenedor.className = "sst-slot-contenedor";
+
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.className = "sst-slot";
+      boton.setAttribute("aria-pressed", String(activo));
+
+      const nombre = document.createElement("strong");
+      nombre.textContent = slot.asesor;
+      const detalle = document.createElement("span");
+      detalle.textContent = texto;
+      boton.append(nombre, detalle);
+
+      boton.addEventListener("click", function () { seleccionarSlot(slot); });
+      contenedor.appendChild(boton);
+
+      if (activo) {
+        const limpiar = document.createElement("button");
+        limpiar.type = "button";
+        limpiar.className = "sst-limpiar-slot";
+        limpiar.textContent = "Limpiar";
+        limpiar.title = "Quitar esta selección";
+        limpiar.setAttribute("aria-label", "Quitar la agenda de " + slot.asesor + ", " + texto);
+        limpiar.addEventListener("click", function () {
+          limpiarSeleccion(true);
+          el.listaAgendas.querySelector(".sst-slot")?.focus();
+        });
+        contenedor.appendChild(limpiar);
+      }
+
+      return contenedor;
+    }
+
+    function mostrarAgendasDisponibles() {
+      const slots = obtenerSlotsDisponibles();
+      const hayFiltros = [el.zona.value, el.especialidad.value, el.asesor.value].some(Boolean);
+
+      el.estadoAgendas.textContent = hayFiltros ? "Disponibilidad filtrada" : "Próximos espacios";
+
+      if (!slots.length) {
+        const vacio = document.createElement("p");
+        vacio.className = "sst-agendas-vacias";
+        vacio.textContent = "No hay espacios disponibles con los filtros seleccionados.";
+        el.listaAgendas.replaceChildren(vacio);
+        return;
+      }
+
+      el.listaAgendas.replaceChildren.apply(el.listaAgendas, slots.map(crearSlot));
+    }
+
+    function mostrarResumenSeleccion() {
+      el.seleccionAgenda.hidden = !seleccion;
+      el.seleccionAgenda.textContent = seleccion
+        ? "Agenda seleccionada: " + seleccion.asesor + " · " + textoSlot(seleccion.fecha, seleccion.hora)
+        : "";
+    }
+
+    function seleccionarSlot(slot) {
+      if (el.asesor.value !== slot.asesor) {
+        ajustarFiltrosParaAsesor(slot.asesor);
+      }
+
+      el.fecha.value = slot.fecha;
+      el.hora.value = slot.hora;
+      seleccion = { asesor: slot.asesor, fecha: slot.fecha, hora: slot.hora };
+
+      actualizarCalendario();
+      mostrarAgendasDisponibles();
+      mostrarResumenSeleccion();
+
+      // Mantiene el foco en el slot elegido tras volver a pintar la lista.
+      const botones = el.listaAgendas.querySelectorAll('.sst-slot[aria-pressed="true"]');
+      if (botones[0]) botones[0].focus();
+    }
+
+    function limpiarSeleccion(borrarFechaHora) {
+      if (borrarFechaHora && seleccion) {
+        el.fecha.value = "";
+        el.hora.value = "";
+      }
+      seleccion = null;
+      mostrarAgendasDisponibles();
+      mostrarResumenSeleccion();
+    }
+
+    // Si el filtro cambia y el slot elegido ya no corresponde al asesor,
+    // se descarta para no enviar una agenda inconsistente.
+    function alCambiarFiltros() {
+      if (seleccion && seleccion.asesor !== el.asesor.value) {
+        limpiarSeleccion(true);
+      } else {
+        mostrarAgendasDisponibles();
+      }
+      actualizarCalendario();
+    }
+
+    /* ---------- Datos para el correo ---------- */
+
+    function actualizarDatosCorreo() {
+      const asesor = buscarAsesor(seleccion ? seleccion.asesor : el.asesor.value);
+      el.enlaceBitrix24.value = asesor ? asesor.calendario : "";
+
+      if (seleccion) {
+        const resumen = seleccion.asesor + " - " + textoSlot(seleccion.fecha, seleccion.hora);
+        el.agendaSeleccionada.value = resumen;
+        el.mensajeConfirmacion.value =
+          "Solicitud recibida. El espacio seleccionado es " + resumen +
+          ". La confirmación definitiva queda sujeta a la validación del equipo.";
+        el.asunto.value = "Solicitud SST - " + seleccion.asesor + " - " + seleccion.fecha + " " + seleccion.hora;
+      } else {
+        el.agendaSeleccionada.value = "";
+        el.mensajeConfirmacion.value =
+          "Solicitud recibida para el " + el.fecha.value + " a las " + el.hora.value +
+          ". El cliente no seleccionó un espacio rápido; el equipo confirmará la disponibilidad.";
+        el.asunto.value = "Nueva solicitud de asesoría SST";
+      }
+    }
+
+    /* ---------- Envío ---------- */
+
+    function mostrarEstadoEnvio(tipo, texto) {
+      el.estadoEnvio.className = "sst-estado-envio " + tipo;
+      el.estadoEnvio.textContent = texto;
+      el.estadoEnvio.hidden = false;
+    }
+
+    function validarFormulario() {
+      const fechaElegida = el.fecha.value ? fechaDesdeISO(el.fecha.value) : null;
+
+      el.fecha.setCustomValidity(
+        fechaElegida && esFinDeSemana(fechaElegida)
+          ? "Las citas solo se agendan de lunes a viernes."
+          : ""
+      );
+
+      if (!el.formulario.checkValidity()) {
+        el.formulario.reportValidity();
+        return false;
+      }
+      return true;
+    }
+
+    async function enviarFormulario(evento) {
+      evento.preventDefault();
+      el.estadoEnvio.hidden = true;
+
+      if (!validarFormulario()) return;
+
+      actualizarDatosCorreo();
+
+      const textoOriginal = el.botonEnviar.textContent;
+      el.botonEnviar.disabled = true;
+      el.botonEnviar.textContent = "Enviando...";
+
+      try {
+        const datos = Object.fromEntries(new FormData(el.formulario));
+        const respuesta = await fetch(el.formulario.action, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify(datos)
+        });
+        const resultado = await respuesta.json().catch(function () { return {}; });
+
+        if (!respuesta.ok || resultado.success === false) {
+          throw new Error(resultado.message || "Error " + respuesta.status);
+        }
+
+        mostrarEstadoEnvio("exito",
+          "¡Solicitud enviada! Te enviamos una confirmación a tu correo. " +
+          "Un asesor validará la cita y se pondrá en contacto contigo.");
+        reiniciarFormulario();
+      } catch (error) {
+        console.error("Formulario SST:", error);
+        mostrarEstadoEnvio("error",
+          "No pudimos enviar tu solicitud. Revisa tu conexión e inténtalo de nuevo.");
+      } finally {
+        el.botonEnviar.disabled = false;
+        el.botonEnviar.textContent = textoOriginal;
+      }
+    }
+
+    function reiniciarFormulario() {
+      el.formulario.reset();
+      seleccion = null;
+      actualizarEspecialidades();
+      actualizarCalendario();
+      mostrarAgendasDisponibles();
+      mostrarResumenSeleccion();
+    }
+
+    /* ---------- Eventos ---------- */
+
+    el.zona.addEventListener("change", function () {
+      actualizarEspecialidades();
+      alCambiarFiltros();
+    });
+
+    el.especialidad.addEventListener("change", function () {
+      el.especialidad.dataset.previa = el.especialidad.value;
+      actualizarAsesores();
+      alCambiarFiltros();
+    });
+
+    el.asesor.addEventListener("change", alCambiarFiltros);
+
+    // Si el usuario edita fecha u hora a mano, el slot rápido deja de aplicar.
+    [el.fecha, el.hora].forEach(function (campo) {
+      campo.addEventListener("change", function () {
+        if (seleccion && (el.fecha.value !== seleccion.fecha || el.hora.value !== seleccion.hora)) {
+          limpiarSeleccion(false);
+        }
+      });
+    });
+
+    el.botonCalendario.addEventListener("click", function () {
+      const url = el.botonCalendario.dataset.url;
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    el.formulario.addEventListener("submit", enviarFormulario);
+
+    // Primera carga: muestra opciones rápidas de todos los asesores.
+    mostrarAgendasDisponibles();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciarFormularioSST);
+  } else {
+    iniciarFormularioSST();
+  }
+})();
+</script>
